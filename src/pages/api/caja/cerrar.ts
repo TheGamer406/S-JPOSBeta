@@ -1,0 +1,49 @@
+import type { APIRoute } from 'astro';
+import { CajaError, calcularCierre, cerrarCaja } from '@/lib/pos/caja';
+import { esquemaCerrarCaja } from '@/lib/pos/esquemas';
+import { esAdmin, puedeVender } from '@/lib/permisos';
+import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+
+/** Corte parcial (X): ver cómo va la caja sin cerrarla (§3.8). */
+export const GET: APIRoute = async ({ url, cookies }) => {
+  const usuario = await obtenerUsuarioActual(cookies);
+  if (!usuario) return new Response(JSON.stringify({ error: 'No autenticado' }), { status: 401 });
+
+  const sesionCajaId = url.searchParams.get('sesionCajaId');
+  if (!sesionCajaId) {
+    return new Response(JSON.stringify({ error: 'Falta sesionCajaId' }), { status: 400 });
+  }
+
+  try {
+    const resumen = await calcularCierre(sesionCajaId);
+    return new Response(JSON.stringify(resumen), { status: 200 });
+  } catch (error) {
+    if (error instanceof CajaError) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 404 });
+    }
+    throw error;
+  }
+};
+
+export const POST: APIRoute = async ({ request, cookies }) => {
+  const usuario = await obtenerUsuarioActual(cookies);
+  if (!usuario) return new Response(JSON.stringify({ error: 'No autenticado' }), { status: 401 });
+  if (!puedeVender(usuario.rol) && !esAdmin(usuario.rol)) {
+    return new Response(JSON.stringify({ error: 'Sin permiso' }), { status: 403 });
+  }
+
+  const resultado = esquemaCerrarCaja.safeParse(await request.json());
+  if (!resultado.success) {
+    return new Response(JSON.stringify({ error: resultado.error.message }), { status: 400 });
+  }
+
+  try {
+    const cierre = await cerrarCaja(resultado.data, usuario.id);
+    return new Response(JSON.stringify(cierre), { status: 200 });
+  } catch (error) {
+    if (error instanceof CajaError) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 409 });
+    }
+    throw error;
+  }
+};
