@@ -16,3 +16,10 @@ release/
 # Salida del empaquetado de Electron
 release/
 dist-electron/
+
+# Datos reales de clientes y personal (Ley 8968 / Prodhab, ver PLAN §6):
+# nombres de empresas, encargados y qué pide cada persona. El repo es público,
+# así que estos archivos viven solo en la laptop, nunca en git.
+docs/Pedidos_Fin_de_Semana.pdf
+docs/Comidas_Para_Imprimir.docx
+scripts/importar-pedidos-reales.ts
