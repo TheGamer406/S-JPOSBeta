@@ -6,6 +6,22 @@ El plan completo está en [`PLAN_POS_SJ.md`](./PLAN_POS_SJ.md). El trabajo está
 por fases en [`docs/fases/`](./docs/fases/README.md) — empezar ahí para saber qué sigue
 y qué ya está hecho.
 
+## Abrir el POS con doble clic
+
+En la laptop del evento, una sola vez:
+
+```bash
+./instalar-acceso-directo.sh
+```
+
+Eso crea el ícono **S&J POS** en el escritorio y en el menú de aplicaciones.
+De ahí en adelante se abre con doble clic: el script instala lo que falte,
+crea la base si no existe, levanta el servidor y abre el navegador. También
+muestra la dirección para entrar desde una tablet en el mismo WiFi (útil para
+la pantalla de cocina).
+
+La ventana de terminal que queda abierta **es** el POS: cerrarla lo apaga.
+
 ## Arrancar en desarrollo
 
 ```bash
