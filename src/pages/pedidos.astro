@@ -1,0 +1,21 @@
+---
+import '@/styles/global.css';
+import ColaPedidos from '@/components/pos/ColaPedidos';
+import BarraNav from '@/components/pos/BarraNav.astro';
+import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+
+const usuario = await obtenerUsuarioActual(Astro.cookies);
+if (!usuario) return Astro.redirect('/');
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>S&J POS — Pedidos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <BarraNav />
+    <ColaPedidos client:load />
+  </body>
+</html>
