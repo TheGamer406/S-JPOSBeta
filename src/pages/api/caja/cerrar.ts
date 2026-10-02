@@ -3,6 +3,7 @@ import { CajaError, calcularCierre, cerrarCaja } from '@/lib/pos/caja';
 import { esquemaCerrarCaja } from '@/lib/pos/esquemas';
 import { esAdmin, puedeVender } from '@/lib/permisos';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+import { respaldarCierre } from '@/lib/pos/respaldos';
 
 /** Corte parcial (X): ver cómo va la caja sin cerrarla (§3.8). */
 export const GET: APIRoute = async ({ url, cookies }) => {
@@ -39,7 +40,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   try {
     const cierre = await cerrarCaja(resultado.data, usuario.id);
-    return new Response(JSON.stringify(cierre), { status: 200 });
+
+    // El respaldo nunca debe tumbar el cierre: ya quedó guardado en la base de
+    // datos. Si falla (ej. disco lleno, sin permisos), se avisa pero no se revierte.
+    let respaldo: { dbPath: string; pdfPath: string } | undefined;
+    let avisoRespaldo: string | undefined;
+    try {
+      respaldo = await respaldarCierre(resultado.data.sesionCajaId);
+    } catch (error) {
+      avisoRespaldo = `No se pudo guardar el respaldo automático: ${error instanceof Error ? error.message : error}`;
+    }
+
+    return new Response(JSON.stringify({ ...cierre, respaldo, avisoRespaldo }), { status: 200 });
   } catch (error) {
     if (error instanceof CajaError) {
       return new Response(JSON.stringify({ error: error.message }), { status: 409 });

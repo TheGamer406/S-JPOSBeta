@@ -25,6 +25,15 @@ Para correr dentro de la ventana de Electron (en vez de solo el navegador):
 npm run electron:dev
 ```
 
+## Respaldo automático en cada cierre
+
+Al cerrar la caja (Z), el servidor guarda solo una copia de `sj-pos.db` y el PDF del
+cierre en `~/Documents/SJ-POS/respaldos/` (§8 del plan) — no hace falta acordarse de
+descargar nada. La carpeta se puede cambiar con `SJ_POS_RESPALDOS_DIR` si el sistema
+usa otro nombre (ej. "Documentos" en vez de "Documents"). Si el respaldo falla (disco
+lleno, sin permisos), el cierre **no se revierte** — ya quedó guardado en la base de
+datos — pero la pantalla de cierre muestra el error para que se resuelva a mano.
+
 ## Ver los tiquetes sin impresora ni papel
 
 Mientras no se confirme el modelo de la Epson ni haya papel térmico a la mano

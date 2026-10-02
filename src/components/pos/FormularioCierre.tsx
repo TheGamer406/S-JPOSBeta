@@ -25,7 +25,11 @@ export default function FormularioCierre() {
   const [loteBac, setLoteBac] = useState('');
   const [loteBn, setLoteBn] = useState('');
   const [notas, setNotas] = useState('');
-  const [resultado, setResultado] = useState<{ diferenciaEfectivo: number } | null>(null);
+  const [resultado, setResultado] = useState<{
+    diferenciaEfectivo: number;
+    respaldo?: { dbPath: string; pdfPath: string };
+    avisoRespaldo?: string;
+  } | null>(null);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -196,6 +200,12 @@ export default function FormularioCierre() {
           >
             Descargar PDF del cierre (con productos vendidos)
           </a>
+          {resultado.respaldo && (
+            <p class="text-sm text-[var(--text_color_2)]">
+              Respaldo automático guardado en: <code>{resultado.respaldo.pdfPath}</code>
+            </p>
+          )}
+          {resultado.avisoRespaldo && <p class="text-[var(--principal-color)]">⚠ {resultado.avisoRespaldo}</p>}
         </div>
       )}
 

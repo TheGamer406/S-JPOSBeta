@@ -67,8 +67,12 @@
       fondo ₡30 000 + 0 efectivo válido − 0 + 0 = esperado ₡30 000 vs. contado ₡33 800 →
       diferencia ₡3 800).
 - [x] Reporte de cierre imprimible (tiquete resumido con `ticketCierre` vía
-      `POST /api/tickets/cierre`). El PDF completo (mencionado en §3.8) no está hecho —
-      por ahora solo existe la versión tiquete/pantalla.
+      `POST /api/tickets/cierre`) y PDF completo con desglose de productos vendidos
+      (`src/lib/pos/pdfCierre.ts`, `GET /api/caja/reporte-pdf`).
+- [x] Respaldo automático en cada cierre (§8): copia de `sj-pos.db` + PDF del cierre
+      en `~/Documents/SJ-POS/respaldos/`, sin depender de que alguien le dé clic a
+      "descargar" (`src/lib/pos/respaldos.ts`). Probado con curl: el `.db` copiado
+      tiene los 15 productos del seed y el PDF abre con `pdftotext`.
 
 ### Clientes
 - [x] Alta de cliente con nombre + cédula (validación de formato física/jurídica/DIMEX)
