@@ -25,11 +25,13 @@
       `src/components/pos/TecladoPin.tsx`) y endpoint de autenticación
       (`src/pages/api/auth.ts`) que valida contra `pin_hash` con bcrypt.
 - [x] Helpers de roles y permisos (`src/lib/permisos.ts`) según la tabla de §2.
-- [ ] `npm install` corrido con éxito en esta máquina (pendiente de confirmar —
-      `better-sqlite3` compila nativo, puede pedir toolchain de build).
-- [ ] `npm run dev` + `npm run electron:dev` abriendo la ventana de Electron apuntando
-      al login real.
-- [ ] Probar el login PIN de punta a punta contra una base de datos migrada y sembrada.
+- [x] `npm install` corrido con éxito (hubo que subir `better-sqlite3` de ^11.5.0 a
+      ^13.0.3 porque la versión del Node de esta máquina es muy reciente).
+- [x] `npm run dev` levanta Astro y responde en `http://localhost:4321`. Falta probar
+      `npm run electron:dev` abriendo la ventana real de Electron (solo se probó el
+      servidor Astro solo, vía curl).
+- [x] Login PIN probado de punta a punta contra la base migrada y sembrada: PIN
+      correcto autentica y pone la cookie, PIN incorrecto da 401.
 
 ## Referencias al plan
 

@@ -19,42 +19,77 @@
 ## Checklist
 
 ### Venta y cobro
-- [ ] Pantalla de apertura de caja: fondo inicial, tipo de cambio del día, evento opcional.
-- [ ] Bloqueo total de venta sin caja abierta.
-- [ ] Cuadrícula de productos por categoría + carrito (+/–, nota por línea).
-- [ ] Botón de "producto agotado".
-- [ ] Nombre de cliente / n.º de mesa opcional en la venta.
-- [ ] Número de orden del día (#001, #002…) reiniciado cada día de sesión.
-- [ ] Modal de cobro: efectivo ₡ con vuelto y botones rápidos (Exacto, ₡10 000, ₡20 000).
-- [ ] Efectivo $ (solo billetes) convertido con el TC del día, vuelto siempre en ₡,
-      redondeado a múltiplos de ₡10 (`src/lib/dinero.ts` ya tiene las funciones).
-- [ ] SINPE Móvil con comprobante → queda "por verificar".
-- [ ] Datáfono BAC / BN con n.º de autorización.
-- [ ] A cuenta: buscar cliente por nombre/cédula/n.º de cuenta, crear cliente al vuelo,
-      aviso de límite de crédito.
-- [ ] Pago dividido (varios métodos hasta completar el total).
-- [ ] Protección contra doble toque (`idempotency_key`, ya está en el esquema).
-- [ ] Imprimir tiquete de venta al confirmar (usar `emitirTicket` de
-      `src/lib/tickets/index.ts`, que ya cae a vista previa en pantalla si no hay
-      impresora o no hay papel — ver `/tickets-demo` para ver el diseño ahora mismo).
+- [x] Pantalla de apertura de caja: fondo inicial, tipo de cambio del día
+      (`src/pages/caja/abrir.astro`, `src/lib/pos/caja.ts`). Evento opcional soportado
+      en el esquema/API pero sin selector en la UI todavía (no hay pantalla de eventos).
+- [x] Bloqueo total de venta sin caja abierta (`POST /api/ventas` → 409 sin sesión;
+      `vender.astro` redirige a `/caja/abrir`). Probado con curl.
+- [x] Cuadrícula de productos por categoría + carrito (+/–, nota por línea)
+      (`PantallaVenta.tsx`).
+- [x] Botón de "producto agotado" (toggle por producto, `PATCH /api/productos/agotado`).
+- [x] Nombre de cliente / n.º de mesa opcional en la venta (`nombreReferencia`).
+- [x] Número de orden del día (#001, #002…) reiniciado al abrir cada sesión
+      (`siguienteNumeroOrdenDia`). Probado con curl.
+- [x] Modal de cobro: efectivo ₡ con vuelto y botones rápidos (Exacto, ₡10 000, ₡20 000)
+      (`ModalCobro.tsx`).
+- [x] Efectivo $ (solo billetes) convertido con el TC del día, vuelto siempre en ₡,
+      redondeado a múltiplos de ₡10 (`src/lib/dinero.ts`, botones de billete en `ModalCobro.tsx`).
+- [x] SINPE Móvil con comprobante → queda "por verificar" (`pagos.verificado = false`
+      para `sinpe`, confirmado con curl).
+- [x] Datáfono BAC / BN con n.º de autorización (opcional).
+- [x] A cuenta: buscar cliente por nombre/cédula/n.º de cuenta, crear cliente al vuelo
+      (`BuscadorCliente.tsx`). Aviso de límite de crédito calculado en `crearVenta`
+      (`saldoCliente.pasaLimite`), falta mostrarlo de forma visible en el modal (hoy
+      solo viaja en la respuesta de la API, no hay alerta en pantalla).
+- [x] Pago dividido (varios métodos hasta completar el total) — probado con curl:
+      SINPE ₡5 000 + efectivo ₡6 200 sobre un total de ₡11 200.
+- [x] Protección contra doble toque (`idempotency_key`): probado reenviando la misma
+      venta dos veces — devuelve la misma venta, no duplica.
+- [x] Imprimir tiquete de venta al confirmar (`POST /api/tickets/venta`, cae a vista
+      previa en pantalla porque no hay impresora configurada — probado con curl y en
+      `/tickets-demo`).
 
 ### Pedidos
-- [ ] Cola con estados `pendiente → preparacion → listo → entregado` (y `anulado`).
-- [ ] Vista con filtros (Pendientes · Listos · Entregados · Todos) y alerta de tiempo.
-- [ ] Anulación con motivo + PIN de admin (`permisos.ts` ya marca qué acciones lo piden).
+- [x] Cola con estados `pendiente → preparacion → listo → entregado` (y `anulado`)
+      (`ColaPedidos.tsx`, `POST /api/pedidos/estado`). Probado con curl, las 3 transiciones.
+- [x] Vista con filtros (Pendientes · Listos · Entregados · Todos) y alerta de tiempo
+      (`ColaPedidos.tsx`, tarjeta en rojo pasados `MINUTOS_ALERTA`).
+- [x] Anulación con motivo + PIN de admin (`POST /api/pedidos/anular`): probado con PIN
+      incorrecto (401) y correcto (200); revierte el cargo a cuenta con un movimiento
+      de ajuste y excluye los pagos del cierre.
 
 ### Cierre de caja
-- [ ] Conteo por denominación (₡ y $ por separado, nunca mezclados).
-- [ ] Verificación manual de SINPEs.
-- [ ] Ingreso de lotes BAC/BN y cálculo de diferencias.
-- [ ] Reporte de cierre imprimible (tiquete resumido con `ticketCierre` + PDF completo).
+- [x] Conteo por denominación (₡ y $ por separado, nunca mezclados)
+      (`FormularioCierre.tsx`, billetes/monedas de §3.8).
+- [ ] Verificación manual de SINPEs: el campo `verificado` existe y se puede marcar por
+      API, pero no hay botón en la UI de cierre para tildarlos uno por uno todavía.
+- [x] Ingreso de lotes BAC/BN y cálculo de diferencias (`calcularCierre`, probado con curl:
+      fondo ₡30 000 + 0 efectivo válido − 0 + 0 = esperado ₡30 000 vs. contado ₡33 800 →
+      diferencia ₡3 800).
+- [x] Reporte de cierre imprimible (tiquete resumido con `ticketCierre` vía
+      `POST /api/tickets/cierre`). El PDF completo (mencionado en §3.8) no está hecho —
+      por ahora solo existe la versión tiquete/pantalla.
 
 ### Clientes
-- [ ] Alta de cliente con nombre + cédula (validación de formato física/jurídica/DIMEX)
-      + número de cuenta automático `S&J000X`.
-- [ ] Aviso si la cédula ya existe (mostrar la cuenta existente, no duplicar).
-- [ ] Tiquete de apertura de cuenta con firma, 2 copias (`ticketAperturaCuenta` ya existe).
-- [ ] Tiquete de cargo a cuenta con firma, 2 copias (`ticketCargoCuenta` ya existe).
+- [x] Alta de cliente con nombre + cédula (validación de formato física/jurídica/DIMEX)
+      + número de cuenta automático `S&J000X` (`src/lib/pos/clientes.ts`). Probado con
+      curl: cédula jurídica válida, cédula corta rechazada (400).
+- [x] Aviso si la cédula ya existe (mostrar la cuenta existente, no duplicar): probado
+      con curl, devuelve 409 + el cliente existente.
+- [x] Tiquete de apertura de cuenta con firma, 2 copias (`ticketAperturaCuenta`,
+      disparado automáticamente al crear cliente desde `BuscadorCliente.tsx`).
+- [x] Tiquete de cargo a cuenta con firma, 2 copias (`ticketCargoCuenta`, se usa en vez
+      del tiquete de venta normal cuando `estadoPago` es `a_cuenta` o `parcial`).
+
+### Pendiente / fuera de esta pasada
+- [ ] Selector de evento en la apertura de caja (el campo existe, falta la pantalla).
+- [ ] Botón para marcar un SINPE como verificado desde la pantalla de cierre.
+- [ ] PDF completo del cierre (hoy solo hay tiquete/preview).
+- [ ] Mostrar en el modal de cobro el aviso de "pasa el límite de crédito" que ya
+      calcula el backend.
+- [ ] Probar en un navegador real con clicks (esta pasada se probó el backend completo
+      por API con curl y se revisó el código de los componentes; falta un click-through
+      manual en Electron/navegador antes de usar esto en un evento real — ver §11).
 
 ## Ya construido en Fase 0 que esta fase reutiliza
 
