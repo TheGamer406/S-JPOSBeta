@@ -1,23 +1,23 @@
 ---
 import '@/styles/global.css';
-import ColaProgramados from '@/components/pos/ColaProgramados';
+import VistaCocina from '@/components/pos/VistaCocina';
 import BarraNav from '@/components/pos/BarraNav.astro';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
-import { puedeVerDinero } from '@/lib/permisos';
+import { puedeVerCola } from '@/lib/permisos';
 
 const usuario = await obtenerUsuarioActual(Astro.cookies);
 if (!usuario) return Astro.redirect('/');
-if (!puedeVerDinero(usuario.rol)) return Astro.redirect('/cocina');
+if (!puedeVerCola(usuario.rol)) return Astro.redirect('/');
 ---
 
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>S&J POS — Pedidos programados</title>
+    <title>S&J POS — Cocina</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
   </head>
   <body>
     <BarraNav rol={usuario.rol} />
-    <ColaProgramados client:load />
+    <VistaCocina client:load />
   </body>
 </html>

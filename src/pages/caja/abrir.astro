@@ -2,9 +2,11 @@
 import '@/styles/global.css';
 import FormularioAperturaCaja from '@/components/pos/FormularioAperturaCaja';
 import { obtenerSesionCajaActiva, obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+import { puedeVerDinero } from '@/lib/permisos';
 
 const usuario = await obtenerUsuarioActual(Astro.cookies);
 if (!usuario) return Astro.redirect('/');
+if (!puedeVerDinero(usuario.rol)) return Astro.redirect('/cocina');
 
 const sesionActiva = await obtenerSesionCajaActiva();
 if (sesionActiva) return Astro.redirect('/vender');

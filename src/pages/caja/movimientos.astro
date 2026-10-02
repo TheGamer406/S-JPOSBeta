@@ -3,9 +3,11 @@ import '@/styles/global.css';
 import FormularioMovimientoCaja from '@/components/pos/FormularioMovimientoCaja';
 import BarraNav from '@/components/pos/BarraNav.astro';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+import { puedeVerDinero } from '@/lib/permisos';
 
 const usuario = await obtenerUsuarioActual(Astro.cookies);
 if (!usuario) return Astro.redirect('/');
+if (!puedeVerDinero(usuario.rol)) return Astro.redirect('/cocina');
 ---
 
 <html lang="es">
@@ -15,7 +17,7 @@ if (!usuario) return Astro.redirect('/');
     <meta name="viewport" content="width=device-width, initial-scale=1" />
   </head>
   <body>
-    <BarraNav />
+    <BarraNav rol={usuario.rol} />
     <FormularioMovimientoCaja client:load />
   </body>
 </html>

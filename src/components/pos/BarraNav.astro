@@ -1,13 +1,32 @@
 ---
 // Barra inferior/lateral del flujo (§5): VENDER · PEDIDOS · CAJA.
+// Cocina no ve dinero (§2): solo le mostramos su propia pantalla.
+interface Props {
+  rol?: 'admin' | 'cajero' | 'cocina';
+}
+const { rol } = Astro.props as Props;
 ---
 
 <nav class="sticky top-0 z-30 flex gap-2 overflow-x-auto bg-black p-2 shadow-md">
-  <a href="/vender" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Vender</a>
-  <a href="/pedidos" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Pedidos</a>
-  <a href="/programados" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Programados</a>
-  <a href="/programados/nuevo" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">+ Programado</a>
-  <a href="/cuentas" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Cuentas</a>
-  <a href="/caja/movimientos" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Mov. caja</a>
-  <a href="/caja/cerrar" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Cerrar caja</a>
+  {
+    rol === 'cocina' ? (
+      <a href="/cocina" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Cocina</a>
+    ) : (
+      <>
+        <a href="/vender" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Vender</a>
+        <a href="/pedidos" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Pedidos</a>
+        <a href="/programados" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Programados</a>
+        <a href="/programados/nuevo" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">+ Programado</a>
+        <a href="/cuentas" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Cuentas</a>
+        <a href="/caja/movimientos" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Mov. caja</a>
+        <a href="/caja/cerrar" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Cerrar caja</a>
+        {rol === 'admin' && (
+          <>
+            <a href="/admin/reportes" class="whitespace-nowrap rounded px-3 py-2 text-[var(--gold)] hover:bg-[var(--background_color_2)]">Reportes</a>
+            <a href="/admin/auditoria" class="whitespace-nowrap rounded px-3 py-2 text-[var(--gold)] hover:bg-[var(--background_color_2)]">Auditoría</a>
+          </>
+        )}
+      </>
+    )
+  }
 </nav>

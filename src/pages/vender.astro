@@ -7,7 +7,7 @@ import { puedeVender } from '@/lib/permisos';
 
 const usuario = await obtenerUsuarioActual(Astro.cookies);
 if (!usuario) return Astro.redirect('/');
-if (!puedeVender(usuario.rol)) return Astro.redirect('/pedidos');
+if (!puedeVender(usuario.rol)) return Astro.redirect(usuario.rol === 'cocina' ? '/cocina' : '/pedidos');
 
 // "Sin caja abierta no se puede vender" (§3.1).
 const sesion = await obtenerSesionCajaActiva();
@@ -21,7 +21,7 @@ if (!sesion) return Astro.redirect('/caja/abrir');
     <meta name="viewport" content="width=device-width, initial-scale=1" />
   </head>
   <body class="flex h-screen flex-col overflow-hidden">
-    <BarraNav />
+    <BarraNav rol={usuario.rol} />
     <PantallaVenta client:load />
   </body>
 </html>
