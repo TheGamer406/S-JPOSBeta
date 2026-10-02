@@ -20,7 +20,7 @@ if (!sesion) return Astro.redirect('/caja/abrir');
     <title>S&J POS — Vender</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
   </head>
-  <body>
+  <body class="flex h-screen flex-col overflow-hidden">
     <BarraNav />
     <PantallaVenta client:load />
   </body>

@@ -100,8 +100,8 @@ export default function PantallaVenta() {
   const productosVisibles = productos.filter((producto) => producto.categoriaId === categoriaActiva);
 
   return (
-    <div class="flex h-screen flex-col lg:flex-row">
-      <div class="flex flex-1 flex-col gap-3 overflow-auto p-4">
+    <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-4">
         <div class="flex gap-2 overflow-x-auto">
           {categorias.map((categoria) => (
             <button
@@ -146,7 +146,7 @@ export default function PantallaVenta() {
         </div>
       </div>
 
-      <div class="flex w-full flex-col gap-3 bg-[var(--background_color_2)] p-4 lg:w-96">
+      <div class="flex min-h-0 w-full flex-col gap-3 bg-[var(--background_color_2)] p-4 lg:w-96">
         <input
           placeholder="Nombre o mesa (opcional)"
           value={nombreReferencia}

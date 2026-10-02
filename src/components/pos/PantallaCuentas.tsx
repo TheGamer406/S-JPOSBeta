@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatoCRC } from '@/lib/dinero';
 import BuscadorCliente from './BuscadorCliente';
+import ModalAbono from './ModalAbono';
 import VistaPreviaTicket from './VistaPreviaTicket';
 
 interface Cliente {
@@ -26,28 +27,25 @@ interface AntiguedadFila {
   cargoMasAntiguo: string | null;
 }
 
-type Metodo = 'efectivo' | 'efectivo_usd' | 'sinpe' | 'datafono_bac' | 'datafono_bn';
-
 export default function PantallaCuentas() {
   const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
+  const [tipoCambioUsd, setTipoCambioUsd] = useState(500);
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [saldo, setSaldo] = useState(0);
   const [mostrarAntiguedad, setMostrarAntiguedad] = useState(false);
   const [antiguedad, setAntiguedad] = useState<AntiguedadFila[]>([]);
+  const [mostrarModalAbono, setMostrarModalAbono] = useState(false);
+  const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/caja')
       .then((respuesta) => respuesta.json())
-      .then((cuerpo) => setCajaAbierta(Boolean(cuerpo.sesion)));
+      .then((cuerpo) => {
+        setCajaAbierta(Boolean(cuerpo.sesion));
+        if (cuerpo.sesion) setTipoCambioUsd(cuerpo.sesion.tipoCambioUsd);
+      });
   }, []);
-
-  const [metodo, setMetodo] = useState<Metodo>('efectivo');
-  const [monto, setMonto] = useState('');
-  const [recibido, setRecibido] = useState('');
-  const [montoUsd, setMontoUsd] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
 
   async function cargarEstadoCuenta(clienteSeleccionado: Cliente) {
     setCliente(clienteSeleccionado);
@@ -66,37 +64,14 @@ export default function PantallaCuentas() {
     setAntiguedad(cuerpo.saldos ?? []);
   }
 
-  async function registrarAbono(evento: SubmitEvent) {
-    evento.preventDefault();
-    if (!cliente) return;
-    setError(null);
-
-    const respuesta = await fetch(`/api/clientes/${cliente.id}/abono`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        metodo,
-        monto: Number(monto),
-        recibido: recibido ? Number(recibido) : undefined,
-        montoUsd: montoUsd ? Number(montoUsd) : undefined,
-      }),
-    });
-
-    const cuerpo = await respuesta.json();
-    if (!respuesta.ok) {
-      setError(cuerpo.error ?? 'No se pudo registrar el abono');
-      return;
-    }
-
-    setMonto('');
-    setRecibido('');
-    setMontoUsd('');
-    await cargarEstadoCuenta(cliente);
+  async function alConfirmarAbono(pagoId: string) {
+    setMostrarModalAbono(false);
+    if (cliente) await cargarEstadoCuenta(cliente);
 
     const ticketRespuesta = await fetch('/api/tickets/abono', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pagoId: cuerpo.pagoId }),
+      body: JSON.stringify({ pagoId }),
     });
     const emision = await ticketRespuesta.json();
     if (emision.html) setVistaPrevia(emision.html);
@@ -162,54 +137,14 @@ export default function PantallaCuentas() {
               Imprimir estado de cuenta
             </button>
 
-            <form onSubmit={registrarAbono} class="mt-6 flex flex-col gap-2 rounded-xl bg-[var(--background_color_2)] p-4">
-              <h3 class="text-xl font-bold">Registrar abono</h3>
-              <select
-                value={metodo}
-                onChange={(e) => setMetodo((e.target as HTMLSelectElement).value as Metodo)}
-                class="rounded bg-[var(--background_color_1)] px-3 py-2"
-              >
-                <option value="efectivo">Efectivo ₡</option>
-                <option value="efectivo_usd">Efectivo $</option>
-                <option value="sinpe">SINPE Móvil</option>
-                <option value="datafono_bac">Datáfono BAC</option>
-                <option value="datafono_bn">Datáfono BN</option>
-              </select>
-              <input
-                type="number"
-                placeholder="Monto abonado (₡)"
-                required
-                value={monto}
-                onInput={(e) => setMonto((e.target as HTMLInputElement).value)}
-                class="rounded bg-[var(--background_color_1)] px-3 py-2"
-              />
-              {metodo === 'efectivo' && (
-                <input
-                  type="number"
-                  placeholder="Recibido (₡)"
-                  value={recibido}
-                  onInput={(e) => setRecibido((e.target as HTMLInputElement).value)}
-                  class="rounded bg-[var(--background_color_1)] px-3 py-2"
-                />
-              )}
-              {metodo === 'efectivo_usd' && (
-                <input
-                  type="number"
-                  placeholder="Recibido ($)"
-                  value={montoUsd}
-                  onInput={(e) => setMontoUsd((e.target as HTMLInputElement).value)}
-                  class="rounded bg-[var(--background_color_1)] px-3 py-2"
-                />
-              )}
-              {error && <p class="text-[var(--principal-color)]">{error}</p>}
-              <button
-                type="submit"
-                disabled={!cajaAbierta}
-                class="boton-pos rounded bg-[var(--principal-color)] font-bold disabled:opacity-40"
-              >
-                {cajaAbierta ? 'Registrar abono' : 'Abrí la caja primero'}
-              </button>
-            </form>
+            <button
+              type="button"
+              disabled={!cajaAbierta}
+              onClick={() => setMostrarModalAbono(true)}
+              class="boton-pos mt-6 w-full rounded-lg bg-[var(--principal-color)] text-xl font-bold disabled:opacity-40"
+            >
+              {cajaAbierta ? 'Registrar abono' : 'Abrí la caja primero'}
+            </button>
           </>
         )}
 
@@ -242,6 +177,16 @@ export default function PantallaCuentas() {
         )}
       </div>
       </div>
+
+      {mostrarModalAbono && cliente && (
+        <ModalAbono
+          clienteId={cliente.id}
+          saldo={saldo}
+          tipoCambioUsd={tipoCambioUsd}
+          onConfirmado={alConfirmarAbono}
+          onCancelar={() => setMostrarModalAbono(false)}
+        />
+      )}
 
       {vistaPrevia && <VistaPreviaTicket html={vistaPrevia} onCerrar={() => setVistaPrevia(null)} />}
     </div>
