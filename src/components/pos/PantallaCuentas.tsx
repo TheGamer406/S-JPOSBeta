@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { formatoCRC } from '@/lib/dinero';
 import BuscadorCliente from './BuscadorCliente';
 import VistaPreviaTicket from './VistaPreviaTicket';
@@ -29,11 +29,18 @@ interface AntiguedadFila {
 type Metodo = 'efectivo' | 'efectivo_usd' | 'sinpe' | 'datafono_bac' | 'datafono_bn';
 
 export default function PantallaCuentas() {
+  const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [saldo, setSaldo] = useState(0);
   const [mostrarAntiguedad, setMostrarAntiguedad] = useState(false);
   const [antiguedad, setAntiguedad] = useState<AntiguedadFila[]>([]);
+
+  useEffect(() => {
+    fetch('/api/caja')
+      .then((respuesta) => respuesta.json())
+      .then((cuerpo) => setCajaAbierta(Boolean(cuerpo.sesion)));
+  }, []);
 
   const [metodo, setMetodo] = useState<Metodo>('efectivo');
   const [monto, setMonto] = useState('');
@@ -107,7 +114,18 @@ export default function PantallaCuentas() {
   }
 
   return (
-    <div class="flex flex-col gap-6 p-4 lg:flex-row">
+    <div class="flex flex-col gap-6 p-4">
+      {cajaAbierta === false && (
+        <div class="rounded-lg bg-[var(--principal-color)] p-4">
+          ⚠ No hay caja abierta — hace falta abrirla para poder registrar abonos (el abono
+          entra al cierre del día, igual que una venta).{' '}
+          <a href="/caja/abrir" class="font-bold underline">
+            Abrir caja
+          </a>
+        </div>
+      )}
+
+      <div class="flex flex-col gap-6 lg:flex-row">
       <div class="w-full lg:w-80">
         <BuscadorCliente onSeleccionar={(c) => cargarEstadoCuenta(c as Cliente)} />
         <button type="button" onClick={verAntiguedad} class="mt-3 w-full rounded bg-[var(--background_color_2)] px-3 py-2">
@@ -118,6 +136,9 @@ export default function PantallaCuentas() {
       <div class="flex-1">
         {cliente && (
           <>
+            <button type="button" onClick={verAntiguedad} class="mb-2 text-sm text-[var(--text_color_2)] underline">
+              ← Ver todas las cuentas
+            </button>
             <h2 class="marca text-2xl">
               {cliente.numeroCuenta} — {cliente.nombre}
             </h2>
@@ -181,8 +202,12 @@ export default function PantallaCuentas() {
                 />
               )}
               {error && <p class="text-[var(--principal-color)]">{error}</p>}
-              <button type="submit" class="boton-pos rounded bg-[var(--principal-color)] font-bold">
-                Registrar abono
+              <button
+                type="submit"
+                disabled={!cajaAbierta}
+                class="boton-pos rounded bg-[var(--principal-color)] font-bold disabled:opacity-40"
+              >
+                {cajaAbierta ? 'Registrar abono' : 'Abrí la caja primero'}
               </button>
             </form>
           </>
@@ -191,20 +216,31 @@ export default function PantallaCuentas() {
         {mostrarAntiguedad && (
           <>
             <h2 class="marca text-2xl">Antigüedad de saldos</h2>
+            <p class="text-sm text-[var(--text_color_2)]">
+              Tocá una cuenta para abrirla y registrarle el abono — útil cuando pagan
+              varias cuentas el mismo día.
+            </p>
             <ul class="mt-4 flex flex-col gap-1">
               {antiguedad.map((fila) => (
-                <li key={fila.cliente.id} class="flex justify-between rounded bg-[var(--background_color_2)] px-3 py-2">
-                  <span>
-                    {fila.cliente.numeroCuenta} — {fila.cliente.nombre}
-                    {fila.cargoMasAntiguo && <em class="ml-2 text-sm text-[var(--text_color_2)]">desde {fila.cargoMasAntiguo}</em>}
-                  </span>
-                  <span class="monto font-bold">{formatoCRC(fila.saldo)}</span>
+                <li key={fila.cliente.id}>
+                  <button
+                    type="button"
+                    onClick={() => cargarEstadoCuenta(fila.cliente)}
+                    class="flex w-full justify-between rounded bg-[var(--background_color_2)] px-3 py-2 text-left hover:bg-[var(--accent_color)]"
+                  >
+                    <span>
+                      {fila.cliente.numeroCuenta} — {fila.cliente.nombre}
+                      {fila.cargoMasAntiguo && <em class="ml-2 text-sm text-[var(--text_color_2)]">desde {fila.cargoMasAntiguo}</em>}
+                    </span>
+                    <span class="monto font-bold">{formatoCRC(fila.saldo)}</span>
+                  </button>
                 </li>
               ))}
               {antiguedad.length === 0 && <p class="text-[var(--text_color_2)]">Nadie debe en este momento.</p>}
             </ul>
           </>
         )}
+      </div>
       </div>
 
       {vistaPrevia && <VistaPreviaTicket html={vistaPrevia} onCerrar={() => setVistaPrevia(null)} />}

@@ -12,6 +12,45 @@ interface ResumenMedio {
   monto: number;
 }
 
+interface FilaDenominacion {
+  valores: number[];
+  denominaciones: Record<string, string>;
+  onCambiar: (valor: number, cantidad: string) => void;
+  prefijo: string;
+}
+
+/** Una fila por denominación: etiqueta a la izquierda, cantidad a la derecha,
+ * subtotal abajo — en lista vertical en vez de cuadrícula, para que se lea de
+ * arriba hacia abajo como una boleta de arqueo real. */
+function ListaDenominaciones({ valores, denominaciones, onCambiar, prefijo }: FilaDenominacion) {
+  return (
+    <ul class="flex flex-col divide-y divide-[var(--background_color_1)] rounded bg-[var(--background_color_2)]">
+      {valores.map((valor) => {
+        const cantidad = Number(denominaciones[valor]) || 0;
+        return (
+          <li key={valor} class="flex items-center justify-between gap-3 px-3 py-2">
+            <span class="w-24">
+              {prefijo}
+              {valor.toLocaleString('es-CR')}
+            </span>
+            <input
+              type="number"
+              min="0"
+              placeholder="0"
+              value={denominaciones[valor] ?? ''}
+              onInput={(e) => onCambiar(valor, (e.target as HTMLInputElement).value)}
+              class="w-24 rounded bg-[var(--background_color_1)] px-2 py-1 text-right"
+            />
+            <span class="monto w-28 text-right text-[var(--text_color_2)]">
+              {cantidad > 0 ? `= ${prefijo}${(valor * cantidad).toLocaleString('es-CR')}` : ''}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default function FormularioCierre() {
   const [sesionId, setSesionId] = useState<string | null>(null);
   const [resumen, setResumen] = useState<{
@@ -53,6 +92,14 @@ export default function FormularioCierre() {
     (suma, [valor, cantidad]) => suma + Number(valor) * (Number(cantidad) || 0),
     0,
   );
+  const diferenciaEstimada = resumen ? efectivoContado - resumen.efectivoEsperado : 0;
+
+  function actualizarDenominacion(valor: number, cantidad: string) {
+    setDenominaciones((d) => ({ ...d, [valor]: cantidad }));
+  }
+  function actualizarDenominacionUsd(valor: number, cantidad: string) {
+    setDenominacionesUsd((d) => ({ ...d, [valor]: cantidad }));
+  }
 
   async function cerrar() {
     setError(null);
@@ -96,85 +143,88 @@ export default function FormularioCierre() {
     <div class="flex flex-col gap-6 p-4">
       <h1 class="marca text-3xl">Cierre de caja (Z)</h1>
 
+      {/* Lo esperado que debería haber en la caja, bien al frente antes de contar nada */}
       {resumen && (
-        <div class="rounded bg-[var(--background_color_2)] p-4">
-          <p>Total vendido: {formatoCRC(resumen.totalVendido)}</p>
-          <p>Abonos recibidos: {formatoCRC(resumen.abonosRecibidos)}</p>
-          <p>Efectivo esperado: {formatoCRC(resumen.efectivoEsperado)}</p>
-          <ul class="mt-2 text-sm text-[var(--text_color_2)]">
-            {resumen.totalesPorMedio.map((fila) => (
-              <li key={fila.medio}>
-                {fila.medio}: {fila.cantidad} · {formatoCRC(fila.monto)}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ul class="flex flex-col divide-y divide-[var(--background_color_1)] rounded-xl bg-[var(--background_color_2)]">
+          {resumen.totalesPorMedio.map((fila) => (
+            <li key={fila.medio} class="flex justify-between px-4 py-2 text-[var(--text_color_2)]">
+              <span class="capitalize">
+                {fila.medio} ({fila.cantidad})
+              </span>
+              <span class="monto">{formatoCRC(fila.monto)}</span>
+            </li>
+          ))}
+          <li class="flex justify-between px-4 py-2">
+            <span>Total vendido</span>
+            <span class="monto font-bold">{formatoCRC(resumen.totalVendido)}</span>
+          </li>
+          <li class="flex justify-between px-4 py-2">
+            <span>Abonos recibidos</span>
+            <span class="monto font-bold">{formatoCRC(resumen.abonosRecibidos)}</span>
+          </li>
+          <li class="flex justify-between px-4 py-3">
+            <span class="text-lg font-bold">Debería haber en caja (₡)</span>
+            <span class="monto text-2xl font-bold text-[var(--gold)]">{formatoCRC(resumen.efectivoEsperado)}</span>
+          </li>
+        </ul>
       )}
 
       <div>
         <h2 class="mb-2 text-xl font-bold">Colones — billetes</h2>
-        <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {BILLETES_CRC.map((valor) => (
-            <label key={valor} class="flex flex-col gap-1 text-sm">
-              {formatoCRC(valor)}
-              <input
-                type="number"
-                min="0"
-                value={denominaciones[valor] ?? ''}
-                onInput={(e) => setDenominaciones((d) => ({ ...d, [valor]: (e.target as HTMLInputElement).value }))}
-                class="rounded bg-[var(--background_color_2)] px-2 py-1"
-              />
-            </label>
-          ))}
-        </div>
+        <ListaDenominaciones
+          valores={BILLETES_CRC}
+          denominaciones={denominaciones}
+          onCambiar={actualizarDenominacion}
+          prefijo="₡"
+        />
       </div>
 
       <div>
         <h2 class="mb-2 text-xl font-bold">Colones — monedas</h2>
-        <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {MONEDAS_CRC.map((valor) => (
-            <label key={valor} class="flex flex-col gap-1 text-sm">
-              {formatoCRC(valor)}
-              <input
-                type="number"
-                min="0"
-                value={denominaciones[valor] ?? ''}
-                onInput={(e) => setDenominaciones((d) => ({ ...d, [valor]: (e.target as HTMLInputElement).value }))}
-                class="rounded bg-[var(--background_color_2)] px-2 py-1"
-              />
-            </label>
-          ))}
-        </div>
+        <ListaDenominaciones
+          valores={MONEDAS_CRC}
+          denominaciones={denominaciones}
+          onCambiar={actualizarDenominacion}
+          prefijo="₡"
+        />
       </div>
 
       <div>
         <h2 class="mb-2 text-xl font-bold">Dólares — billetes (solo billetes, sin monedas)</h2>
-        <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {BILLETES_USD.map((valor) => (
-            <label key={valor} class="flex flex-col gap-1 text-sm">
-              ${valor}
-              <input
-                type="number"
-                min="0"
-                value={denominacionesUsd[valor] ?? ''}
-                onInput={(e) => setDenominacionesUsd((d) => ({ ...d, [valor]: (e.target as HTMLInputElement).value }))}
-                class="rounded bg-[var(--background_color_2)] px-2 py-1"
-              />
-            </label>
-          ))}
-        </div>
+        <ListaDenominaciones
+          valores={BILLETES_USD}
+          denominaciones={denominacionesUsd}
+          onCambiar={actualizarDenominacionUsd}
+          prefijo="$"
+        />
       </div>
 
-      <p class="monto text-2xl">
-        Efectivo contado: {formatoCRC(efectivoContado)} · Dólares contados: ${usdContado}
-      </p>
+      {/* Comparación en vivo mientras se cuenta, antes de confirmar el cierre */}
+      <ul class="flex flex-col divide-y divide-[var(--background_color_1)] rounded-xl bg-[var(--background_color_2)]">
+        <li class="flex justify-between px-4 py-2">
+          <span>Efectivo contado (₡)</span>
+          <span class="monto font-bold">{formatoCRC(efectivoContado)}</span>
+        </li>
+        <li class="flex justify-between px-4 py-2">
+          <span>Dólares contados</span>
+          <span class="monto font-bold">${usdContado}</span>
+        </li>
+        {resumen && (
+          <li class="flex justify-between px-4 py-3">
+            <span class="text-lg font-bold">Diferencia estimada</span>
+            <span class={`monto text-2xl font-bold ${diferenciaEstimada !== 0 ? 'text-[var(--principal-color)]' : 'text-[var(--accent_color)]'}`}>
+              {formatoCRC(diferenciaEstimada)} {diferenciaEstimada !== 0 ? '⚠' : '✓'}
+            </span>
+          </li>
+        )}
+      </ul>
 
-      <div class="grid grid-cols-2 gap-3">
-        <label class="flex flex-col gap-1">
+      <div class="flex flex-col gap-3 sm:flex-row">
+        <label class="flex flex-1 flex-col gap-1">
           Lote BAC
           <input value={loteBac} onInput={(e) => setLoteBac((e.target as HTMLInputElement).value)} class="rounded bg-[var(--background_color_2)] px-3 py-2" />
         </label>
-        <label class="flex flex-col gap-1">
+        <label class="flex flex-1 flex-col gap-1">
           Lote BN
           <input value={loteBn} onInput={(e) => setLoteBn((e.target as HTMLInputElement).value)} class="rounded bg-[var(--background_color_2)] px-3 py-2" />
         </label>

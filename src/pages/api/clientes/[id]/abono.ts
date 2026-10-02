@@ -12,7 +12,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
 
   const resultado = esquemaRegistrarAbono.safeParse({ ...(await request.json()), clienteId: params.id });
   if (!resultado.success) {
-    return new Response(JSON.stringify({ error: resultado.error.message }), { status: 400 });
+    return new Response(JSON.stringify({ error: resultado.error.issues.map((i) => i.message).join('; ') }), { status: 400 });
   }
 
   try {

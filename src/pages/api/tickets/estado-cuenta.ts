@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const resultado = esquema.safeParse(await request.json());
   if (!resultado.success) {
-    return new Response(JSON.stringify({ error: resultado.error.message }), { status: 400 });
+    return new Response(JSON.stringify({ error: resultado.error.issues.map((i) => i.message).join('; ') }), { status: 400 });
   }
 
   let estado;
