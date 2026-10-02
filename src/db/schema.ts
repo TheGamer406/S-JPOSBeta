@@ -105,6 +105,11 @@ export const ventas = sqliteTable('ventas', {
   estadoPedido: text('estado_pedido', {
     enum: ['pendiente', 'preparacion', 'listo', 'entregado', 'anulado'],
   }).notNull().default('pendiente'),
+  // "En espera" (ej. el cliente se fue a hacer otra cosa) es independiente del
+  // avance normal de la cocina: no pierde el progreso que ya tenía. Al reanudar,
+  // vuelve marcado con prioridad para que no se quede atrás en la cola.
+  enEspera: integer('en_espera', { mode: 'boolean' }).notNull().default(false),
+  prioridad: integer('prioridad', { mode: 'boolean' }).notNull().default(false),
 
   fechaProgramada: text('fecha_programada'),
   tiempoComida: text('tiempo_comida', { enum: ['almuerzo', 'cafe', 'cena'] }),

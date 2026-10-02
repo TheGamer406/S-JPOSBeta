@@ -15,6 +15,8 @@ interface Venta {
   estadoPedido: 'pendiente' | 'preparacion' | 'listo' | 'entregado' | 'anulado';
   estadoPago: string;
   creadoEn: string;
+  enEspera: boolean;
+  prioridad: boolean;
 }
 
 interface Pedido {
@@ -61,6 +63,15 @@ export default function ColaPedidos() {
     cargar();
   }
 
+  async function cambiarEspera(ventaId: string, enEspera: boolean) {
+    await fetch('/api/pedidos/espera', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ventaId, enEspera }),
+    });
+    cargar();
+  }
+
   async function confirmarAnulacion() {
     setError(null);
     const respuesta = await fetch('/api/pedidos/anular', {
@@ -79,12 +90,19 @@ export default function ColaPedidos() {
     cargar();
   }
 
-  const visibles = pedidos.filter(({ venta }) => {
-    if (filtro === 'todos') return true;
-    if (filtro === 'pendientes') return venta.estadoPedido === 'pendiente' || venta.estadoPedido === 'preparacion';
-    if (filtro === 'listos') return venta.estadoPedido === 'listo';
-    return venta.estadoPedido === 'entregado';
-  });
+  const visibles = pedidos
+    .filter(({ venta }) => {
+      if (filtro === 'todos') return true;
+      if (filtro === 'pendientes') return venta.estadoPedido === 'pendiente' || venta.estadoPedido === 'preparacion';
+      if (filtro === 'listos') return venta.estadoPedido === 'listo';
+      return venta.estadoPedido === 'entregado';
+    })
+    .sort((a, b) => {
+      // En espera al fondo; prioridad primero; el resto por antigüedad.
+      if (a.venta.enEspera !== b.venta.enEspera) return a.venta.enEspera ? 1 : -1;
+      if (a.venta.prioridad !== b.venta.prioridad) return a.venta.prioridad ? -1 : 1;
+      return new Date(a.venta.creadoEn).getTime() - new Date(b.venta.creadoEn).getTime();
+    });
 
   return (
     <div class="flex flex-col gap-4 p-4">
@@ -112,11 +130,23 @@ export default function ColaPedidos() {
           return (
             <div
               key={venta.id}
-              class={`rounded-xl p-4 ${tarde ? 'bg-[var(--principal-color)]' : 'bg-[var(--background_color_2)]'}`}
+              class={`rounded-xl p-4 ${
+                venta.enEspera
+                  ? 'bg-[var(--background_color_1)] opacity-60'
+                  : tarde
+                    ? 'bg-[var(--principal-color)]'
+                    : 'bg-[var(--background_color_2)]'
+              }`}
             >
               <div class="flex items-center justify-between">
                 <span class="text-xl font-bold">#{String(venta.numeroOrdenDia).padStart(3, '0')}</span>
                 <span class="monto">{formatoCRC(venta.total)}</span>
+              </div>
+              <div class="flex gap-2">
+                {venta.prioridad && !venta.enEspera && (
+                  <span class="rounded bg-[var(--gold)] px-2 text-xs font-bold text-black">⭐ Prioridad</span>
+                )}
+                {venta.enEspera && <span class="rounded bg-black/40 px-2 text-xs font-bold">⏸ En espera</span>}
               </div>
               {venta.nombreReferencia && <p>{venta.nombreReferencia}</p>}
               <ul class="mt-2 text-sm">
@@ -132,13 +162,22 @@ export default function ColaPedidos() {
               </p>
 
               <div class="mt-3 flex gap-2">
-                {siguiente && (
+                {!venta.enEspera && siguiente && (
                   <button
                     type="button"
                     onClick={() => avanzarEstado(venta.id, siguiente.estado)}
                     class="boton-pos flex-1 rounded bg-[var(--accent_color)]"
                   >
                     {siguiente.etiqueta}
+                  </button>
+                )}
+                {venta.estadoPedido !== 'entregado' && (
+                  <button
+                    type="button"
+                    onClick={() => cambiarEspera(venta.id, !venta.enEspera)}
+                    class="rounded bg-black/40 px-3 text-sm"
+                  >
+                    {venta.enEspera ? 'Reanudar' : 'En espera'}
                   </button>
                 )}
                 {venta.estadoPedido !== 'entregado' && (

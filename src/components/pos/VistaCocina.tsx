@@ -12,6 +12,8 @@ interface Venta {
   nombreReferencia: string | null;
   estadoPedido: 'pendiente' | 'preparacion' | 'listo' | 'entregado' | 'anulado';
   creadoEn: string;
+  enEspera: boolean;
+  prioridad: boolean;
 }
 
 interface Pedido {
@@ -55,7 +57,13 @@ export default function VistaCocina() {
     cargar();
   }
 
-  const activos = pedidos.filter(({ venta }) => venta.estadoPedido !== 'entregado' && venta.estadoPedido !== 'anulado');
+  const activos = pedidos
+    .filter(({ venta }) => venta.estadoPedido !== 'entregado' && venta.estadoPedido !== 'anulado')
+    .sort((a, b) => {
+      if (a.venta.enEspera !== b.venta.enEspera) return a.venta.enEspera ? 1 : -1;
+      if (a.venta.prioridad !== b.venta.prioridad) return a.venta.prioridad ? -1 : 1;
+      return new Date(a.venta.creadoEn).getTime() - new Date(b.venta.creadoEn).getTime();
+    });
 
   return (
     <div class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -65,12 +73,27 @@ export default function VistaCocina() {
         const siguiente = SIGUIENTE_ESTADO[venta.estadoPedido];
 
         return (
-          <div key={venta.id} class={`rounded-xl p-5 ${tarde ? 'bg-[var(--principal-color)]' : 'bg-[var(--background_color_2)]'}`}>
+          <div
+            key={venta.id}
+            class={`rounded-xl p-5 ${
+              venta.enEspera
+                ? 'bg-[var(--background_color_1)] opacity-60'
+                : tarde
+                  ? 'bg-[var(--principal-color)]'
+                  : 'bg-[var(--background_color_2)]'
+            }`}
+          >
             <div class="flex items-center justify-between">
               <span class="text-3xl font-bold">
                 {venta.numeroOrdenDia ? `#${String(venta.numeroOrdenDia).padStart(3, '0')}` : 'Programado'}
               </span>
               <span class="text-xl">{Math.round(minutos)} min</span>
+            </div>
+            <div class="flex gap-2">
+              {venta.prioridad && !venta.enEspera && (
+                <span class="rounded bg-[var(--gold)] px-2 text-sm font-bold text-black">⭐ PRIORIDAD</span>
+              )}
+              {venta.enEspera && <span class="rounded bg-black/40 px-2 text-sm font-bold">⏸ EN ESPERA</span>}
             </div>
             {venta.nombreReferencia && <p class="text-xl">{venta.nombreReferencia}</p>}
             <ul class="mt-3 flex flex-col gap-1 text-2xl">
@@ -82,7 +105,7 @@ export default function VistaCocina() {
               ))}
             </ul>
 
-            {siguiente && (
+            {!venta.enEspera && siguiente && (
               <button
                 type="button"
                 onClick={() => avanzarEstado(venta.id, siguiente.estado)}

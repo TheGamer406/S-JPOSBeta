@@ -54,6 +54,14 @@
       (`ColaPedidos.tsx`, `POST /api/pedidos/estado`). Probado con curl, las 3 transiciones.
 - [x] Vista con filtros (Pendientes · Listos · Entregados · Todos) y alerta de tiempo
       (`ColaPedidos.tsx`, tarjeta en rojo pasados `MINUTOS_ALERTA`).
+- [x] Estado "en espera" (ej. el cliente se fue un rato) + prioridad al reanudar:
+      no es parte del flujo normal de `estado_pedido` (no se pierde el progreso que
+      ya tenía la cocina) sino un flag aparte (`ventas.en_espera`), con un segundo
+      flag `prioridad` que se activa solo al salir de espera. Lo cambia el cajero
+      (`POST /api/pedidos/espera`); la cocina solo lo ve (atenuado y al fondo de la
+      cola si está en espera, con un tag dorado "⭐ PRIORIDAD" al volver). Probado
+      con curl: entra en espera sin cambiar `estadoPedido`, al reanudar queda
+      `prioridad=true`, y no se puede poner en espera un pedido ya entregado.
 - [x] Anulación con motivo + PIN de admin (`POST /api/pedidos/anular`): probado con PIN
       incorrecto (401) y correcto (200); revierte el cargo a cuenta con un movimiento
       de ajuste y excluye los pagos del cierre.

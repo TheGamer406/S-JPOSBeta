@@ -61,6 +61,11 @@ export const esquemaCambiarEstadoPedido = z.object({
   estado: z.enum(['preparacion', 'listo', 'entregado']),
 });
 
+export const esquemaCambiarEspera = z.object({
+  ventaId: z.string().uuid(),
+  enEspera: z.boolean(),
+});
+
 export const esquemaRegistrarAbono = z.object({
   clienteId: z.string().uuid(),
   metodo: z.enum(['efectivo', 'efectivo_usd', 'sinpe', 'datafono_bac', 'datafono_bn']),

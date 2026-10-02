@@ -25,6 +25,25 @@ export async function cambiarEstadoPedido(
     .run();
 }
 
+/**
+ * "En espera" (ej. el cliente se fue un rato): no toca estado_pedido, así que la
+ * cocina no pierde el progreso que ya tenía. Al reanudar (enEspera=false), el
+ * pedido vuelve marcado con prioridad para que el cajero/cocina lo note primero.
+ */
+export async function cambiarEspera(ventaId: string, enEspera: boolean) {
+  const [venta] = await db.select().from(ventas).where(eq(ventas.id, ventaId));
+  if (!venta) throw new PedidoError('Venta no encontrada');
+  if (venta.estadoPedido === 'anulado' || venta.estadoPedido === 'entregado') {
+    throw new PedidoError('Este pedido ya no se puede poner en espera');
+  }
+
+  await db
+    .update(ventas)
+    .set({ enEspera, prioridad: enEspera ? venta.prioridad : true })
+    .where(eq(ventas.id, ventaId))
+    .run();
+}
+
 /** Verifica el PIN contra cualquier usuario admin activo (§2: acciones sensibles). */
 export async function verificarPinAdmin(pin: string): Promise<typeof usuarios.$inferSelect | null> {
   const admins = await db.select().from(usuarios).where(eq(usuarios.rol, 'admin'));
