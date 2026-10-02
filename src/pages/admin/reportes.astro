@@ -1,0 +1,23 @@
+---
+import '@/styles/global.css';
+import PantallaReportes from '@/components/pos/PantallaReportes';
+import BarraNav from '@/components/pos/BarraNav.astro';
+import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+import { esAdmin } from '@/lib/permisos';
+
+const usuario = await obtenerUsuarioActual(Astro.cookies);
+if (!usuario) return Astro.redirect('/');
+if (!esAdmin(usuario.rol)) return Astro.redirect('/vender');
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>S&J POS — Reportes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <BarraNav rol={usuario.rol} />
+    <PantallaReportes client:load />
+  </body>
+</html>

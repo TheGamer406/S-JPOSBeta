@@ -1,0 +1,68 @@
+---
+import '@/styles/global.css';
+import { desc } from 'drizzle-orm';
+import BarraNav from '@/components/pos/BarraNav.astro';
+import { db } from '@/db/client';
+import { auditoria, usuarios } from '@/db/schema';
+import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+import { esAdmin } from '@/lib/permisos';
+
+const usuario = await obtenerUsuarioActual(Astro.cookies);
+if (!usuario) return Astro.redirect('/');
+if (!esAdmin(usuario.rol)) return Astro.redirect('/vender');
+
+const registros = await db.select().from(auditoria).orderBy(desc(auditoria.creadoEn)).limit(200);
+const todosLosUsuarios = await db.select().from(usuarios);
+const nombrePorId = new Map(todosLosUsuarios.map((u) => [u.id, u.nombre]));
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>S&J POS — Bitácora</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <BarraNav rol={usuario.rol} />
+    <div class="flex flex-col gap-4 p-4">
+      <h1 class="marca text-3xl">Bitácora de auditoría</h1>
+      <p class="text-sm text-[var(--text_color_2)]">Quién anuló, descontó o reabrió qué (§3.9). Últimos 200 registros.</p>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-[var(--background_color_2)] text-[var(--text_color_2)]">
+              <th class="py-2 pr-4">Fecha</th>
+              <th class="py-2 pr-4">Usuario</th>
+              <th class="py-2 pr-4">Acción</th>
+              <th class="py-2 pr-4">Entidad</th>
+              <th class="py-2">Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            {registros.map((registro) => (
+              <tr class="border-b border-[var(--background_color_2)]">
+                <td class="py-2 pr-4">{registro.creadoEn}</td>
+                <td class="py-2 pr-4">{nombrePorId.get(registro.usuarioId) ?? '—'}</td>
+                <td class="py-2 pr-4">{registro.accion}</td>
+                <td class="py-2 pr-4">
+                  {registro.entidad} <code class="text-xs text-[var(--text_color_2)]">{registro.entidadId.slice(0, 8)}</code>
+                </td>
+                <td class="py-2 text-sm text-[var(--text_color_2)]">
+                  {registro.detalle ? JSON.stringify(registro.detalle) : ''}
+                </td>
+              </tr>
+            ))}
+            {registros.length === 0 && (
+              <tr>
+                <td colspan="5" class="py-4 text-[var(--text_color_2)]">
+                  Sin registros todavía.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
