@@ -85,8 +85,8 @@
 - [ ] Selector de evento en la apertura de caja (el campo existe, falta la pantalla).
 - [ ] Botón para marcar un SINPE como verificado desde la pantalla de cierre.
 - [ ] PDF completo del cierre (hoy solo hay tiquete/preview).
-- [ ] Mostrar en el modal de cobro el aviso de "pasa el límite de crédito" que ya
-      calcula el backend.
+- [x] Mostrar en el modal de cobro el aviso de "pasa el límite de crédito" —
+      resuelto en Fase 2 (`ModalCobro.tsx` → `PantallaVenta.tsx`).
 - [ ] Probar en un navegador real con clicks (esta pasada se probó el backend completo
       por API con curl y se revisó el código de los componentes; falta un click-through
       manual en Electron/navegador antes de usar esto en un evento real — ver §11).
