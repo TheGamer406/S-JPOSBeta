@@ -29,6 +29,20 @@
       "when": 1790918727209,
       "tag": "0003_slippery_lord_hawal",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790923796751,
+      "tag": "0004_tough_black_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790924260104,
+      "tag": "0005_rare_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

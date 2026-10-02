@@ -18,11 +18,10 @@ export const GET: APIRoute = async ({ cookies }) => {
     .where(ne(ventas.estadoPedido, 'anulado'))
     .orderBy(desc(ventas.creadoEn));
 
-  // Un pedido programado (§3.5) no aparece acá hasta que se procesa su primera
-  // entrega en /programados — ahí es cuando se le asigna sesión y número de
-  // orden (igual que una venta real). Antes de eso solo "existe" para el
-  // cajero en la pantalla de programados, no satura la cola del día.
-  const ventasDelDia = todasLasVentas.filter((venta) => venta.tipo !== 'programado' || venta.sesionCajaId !== null);
+  // Un pedido programado (§3.5) es el plan, no un pedido de cocina: lo que entra
+  // a esta cola son las ventas que salen al despacharlo en /programados (cada una
+  // solo con lo que realmente se sacó), no el pedido completo del día.
+  const ventasDelDia = todasLasVentas.filter((venta) => venta.tipo !== 'programado');
 
   // Se trae todo venta_items una sola vez y se agrupa en memoria (son pocos pedidos por evento).
   const todosLosItems = await db.select().from(ventaItems);

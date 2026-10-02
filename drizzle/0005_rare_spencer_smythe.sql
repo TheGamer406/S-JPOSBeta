@@ -1,0 +1,1 @@
+ALTER TABLE `venta_items` ADD `plan_item_id` text;

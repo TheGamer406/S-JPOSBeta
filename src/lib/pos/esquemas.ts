@@ -95,14 +95,9 @@ export const esquemaCrearProgramado = z.object({
   items: z.array(esquemaItemVenta).min(1),
 });
 
-export const esquemaEntregaItem = z.object({
-  ventaItemId: z.string().uuid(),
-  cantidadEntregada: z.number().int().nonnegative(),
-});
-
-// Pago de la entrega: igual que cobrar una venta normal — el cajero elige en el
+// Pago de un despacho: igual que cobrar una venta normal — el cajero elige en el
 // momento si se paga ahora (cualquier medio) o se carga a la cuenta del cliente.
-// El monto lo calcula el servidor a partir de lo entregado, nunca el cliente.
+// El monto lo calcula el servidor a partir de lo despachado, nunca el cliente.
 export const esquemaPagoEntrega = z.object({
   metodo: z.enum(['efectivo', 'efectivo_usd', 'sinpe', 'datafono_bac', 'datafono_bn', 'cuenta']),
   recibido: z.number().int().positive().optional(),
@@ -110,11 +105,28 @@ export const esquemaPagoEntrega = z.object({
   referencia: z.string().optional(),
 });
 
-export const esquemaEntregarProgramado = z.object({
-  ventaId: z.string().uuid(),
-  entregas: z.array(esquemaEntregaItem).min(1),
-  pago: esquemaPagoEntrega.optional(),
+/**
+ * Despacho de un pedido programado (§3.5): se saca una parte del plan y se
+ * convierte en una venta real. `lineas` es cuánto se saca AHORA de cada línea
+ * del plan (no el acumulado), y `adicionales` son productos que el cliente pide
+ * en el momento y no estaban en el pedido original.
+ */
+export const esquemaLineaDespacho = z.object({
+  ventaItemId: z.string().uuid(),
+  cantidad: z.number().int().positive(),
 });
+
+export const esquemaDespacharProgramado = z
+  .object({
+    programadoId: z.string().uuid(),
+    lineas: z.array(esquemaLineaDespacho).default([]),
+    adicionales: z.array(esquemaItemVenta).default([]),
+    pago: esquemaPagoEntrega,
+    idempotencyKey: z.string().min(10),
+  })
+  .refine((datos) => datos.lineas.length > 0 || datos.adicionales.length > 0, {
+    message: 'Hay que sacar al menos un producto del pedido o agregar uno adicional',
+  });
 
 export const esquemaCrearUsuario = z.object({
   nombre: z.string().min(1),

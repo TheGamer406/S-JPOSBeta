@@ -114,6 +114,12 @@ export const ventas = sqliteTable('ventas', {
   fechaProgramada: text('fecha_programada'),
   tiempoComida: text('tiempo_comida', { enum: ['almuerzo', 'cafe', 'cena'] }),
 
+  // Cuando se despacha parte de un pedido programado (§3.5) se crea una venta
+  // real SOLO con lo que se sacó (más lo adicional que pidan en el momento), y
+  // esa venta apunta acá al programado del que salió. El programado queda como
+  // el plan/saldo: nunca lleva pagos ni número de orden propios.
+  programadoOrigenId: text('programado_origen_id'),
+
   nota: text('nota'),
   creadoEn: text('creado_en').notNull().default(sql`(current_timestamp)`),
   entregadoEn: text('entregado_en'),
@@ -134,6 +140,11 @@ export const ventaItems = sqliteTable('venta_items', {
   cantidadEntregada: integer('cantidad_entregada').notNull().default(0),
   nota: text('nota'),
   subtotal: integer('subtotal').notNull(),
+  // Solo en líneas de una venta despachada desde un pedido programado: apunta a
+  // la línea del plan de la que salió. Permite devolverle la cantidad exacta al
+  // plan si la venta se anula (sin esto, un producto adicional del mismo tipo
+  // haría ambiguo cuánto devolver). Null en ventas de mostrador y adicionales.
+  planItemId: text('plan_item_id'),
 });
 
 export const pagos = sqliteTable('pagos', {

@@ -1,0 +1,1 @@
+ALTER TABLE `ventas` ADD `programado_origen_id` text;
