@@ -15,7 +15,7 @@ Cada archivo tiene:
 | Fase 1 — MVP para vender en un evento | [fase-1-mvp.md](./fase-1-mvp.md) | 🟡 Backend completo y probado por API; falta click-through en navegador/Electron |
 | Fase 2 — Cuentas por cobrar completas | [fase-2-cuentas.md](./fase-2-cuentas.md) | 🟡 Backend y API completos y probados; falta click-through en navegador |
 | Fase 3 — Pedidos programados de empresas | [fase-3-programados.md](./fase-3-programados.md) | 🟡 Backend y API completos y probados; falta click-through en navegador |
-| Fase 4 — Extras | [fase-4-extras.md](./fase-4-extras.md) | ⚪ No iniciada |
+| Fase 4 — Extras | [fase-4-extras.md](./fase-4-extras.md) | 🟡 Completa y probada por API; falta click-through en navegador |
 | Versión 2 — Comprobantes electrónicos | [version-2-hacienda.md](./version-2-hacienda.md) | ⚪ Futuro, fuera de alcance de v1 |
 
 No se vende nada en producción hasta que la Fase 1 esté completa y probada con el
