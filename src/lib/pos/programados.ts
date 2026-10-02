@@ -100,8 +100,9 @@ function totalEntregado(items: { precioSnapshot: number; cantidadEntregada: numb
 
 /**
  * Marca entregas totales o parciales por línea (§3.5: "9 de 9 perros, faltan 2
- * arroces") y, según el modo_pago_default del cliente, carga a cuenta o cobra de
- * una vez por lo entregado — nunca por el pedido completo si todavía falta algo.
+ * arroces"). El cobro de lo entregado funciona igual que una venta normal: el
+ * cajero elige en el momento si se paga ahora (cualquier medio) o se carga a la
+ * cuenta — `modo_pago_default` del cliente ya no lo decide, es solo informativo.
  */
 export async function marcarEntregaParcial(
   entrada: EntradaEntrega,
@@ -117,9 +118,6 @@ export async function marcarEntregaParcial(
 
   const [cliente] = await db.select().from(clientes).where(eq(clientes.id, venta.clienteId));
   if (!cliente) throw new ProgramadoError('Cliente no encontrado');
-  if (cliente.estado === 'bloqueado' && cliente.modoPagoDefault === 'cuenta') {
-    throw new ProgramadoError(`La cuenta ${cliente.numeroCuenta} está bloqueada`);
-  }
 
   const itemsActuales = await db.select().from(ventaItems).where(eq(ventaItems.ventaId, venta.id));
   const itemPorId = new Map(itemsActuales.map((item) => [item.id, item]));
@@ -135,39 +133,28 @@ export async function marcarEntregaParcial(
     }
   }
 
-  const totalYaCargadoOPagado =
-    cliente.modoPagoDefault === 'cuenta'
-      ? (
-          sqlite
-            .prepare("SELECT COALESCE(SUM(monto), 0) AS total FROM movimientos_cuenta WHERE venta_id = ? AND tipo = 'cargo'")
-            .get(venta.id) as { total: number }
-        ).total
-      : (
-          sqlite.prepare('SELECT COALESCE(SUM(monto), 0) AS total FROM pagos WHERE venta_id = ? AND anulado = 0').get(venta.id) as {
-            total: number;
-          }
-        ).total;
+  const totalYaPagado = (
+    sqlite.prepare('SELECT COALESCE(SUM(monto), 0) AS total FROM pagos WHERE venta_id = ? AND anulado = 0').get(venta.id) as {
+      total: number;
+    }
+  ).total;
 
   const itemsActualizados = itemsActuales.map((item) => {
     const entrega = entrada.entregas.find((e) => e.ventaItemId === item.id);
     return entrega ? { ...item, cantidadEntregada: entrega.cantidadEntregada } : item;
   });
   const totalEntregadoNuevo = totalEntregado(itemsActualizados);
-  const delta = totalEntregadoNuevo - totalYaCargadoOPagado;
+  const delta = totalEntregadoNuevo - totalYaPagado;
 
-  if (delta > 0 && cliente.modoPagoDefault === 'contra_entrega' && !entrada.pago) {
-    throw new ProgramadoError(`Falta el pago de ${delta} que corresponde a esta entrega`);
+  if (delta > 0 && !entrada.pago) {
+    throw new ProgramadoError(`Falta decidir cómo se cobra esta entrega (${delta} pendiente)`);
+  }
+  if (delta > 0 && entrada.pago!.metodo === 'cuenta' && cliente.estado === 'bloqueado') {
+    throw new ProgramadoError(`La cuenta ${cliente.numeroCuenta} está bloqueada`);
   }
 
   const completo = itemsActualizados.every((item) => item.cantidadEntregada === item.cantidad);
   const algunaEntrega = itemsActualizados.some((item) => item.cantidadEntregada > 0);
-
-  let estadoPago: typeof venta.estadoPago;
-  if (cliente.modoPagoDefault === 'cuenta') {
-    estadoPago = completo ? 'a_cuenta' : algunaEntrega ? 'parcial' : 'pendiente';
-  } else {
-    estadoPago = completo ? 'pagada' : algunaEntrega ? 'parcial' : 'pendiente';
-  }
 
   sqlite.transaction(() => {
     for (const entrega of entrada.entregas) {
@@ -177,10 +164,10 @@ export async function marcarEntregaParcial(
         .run();
     }
 
-    if (delta > 0) {
+    if (delta > 0 && entrada.pago) {
       const pagoId = randomUUID();
 
-      if (cliente.modoPagoDefault === 'cuenta') {
+      if (entrada.pago.metodo === 'cuenta') {
         db.insert(pagos)
           .values({
             id: pagoId,
@@ -204,7 +191,7 @@ export async function marcarEntregaParcial(
             usuarioId,
           })
           .run();
-      } else if (entrada.pago) {
+      } else {
         let recibido: number | undefined;
         let vuelto: number | undefined;
         let montoUsd: number | undefined;
@@ -238,6 +225,24 @@ export async function marcarEntregaParcial(
           .run();
       }
     }
+
+    // El estado combina cuánto se ha entregado y cómo se pagó lo entregado hasta
+    // ahora: si todo lo pagado fue "cuenta" se ve como a_cuenta, si todo fue pago
+    // directo se ve como pagada; una mezcla (parte a cuenta, parte al contado)
+    // también cae en "parcial" aunque la entrega esté completa — no hay un estado
+    // más preciso para "completo pero con pago mixto" en el esquema actual.
+    const pagosVenta = sqlite
+      .prepare("SELECT metodo, monto FROM pagos WHERE venta_id = ? AND anulado = 0")
+      .all(venta.id) as { metodo: string; monto: number }[];
+    const totalCuenta = pagosVenta.filter((p) => p.metodo === 'cuenta').reduce((s, p) => s + p.monto, 0);
+    const totalDirecto = pagosVenta.filter((p) => p.metodo !== 'cuenta').reduce((s, p) => s + p.monto, 0);
+
+    let estadoPago: typeof venta.estadoPago;
+    if (!algunaEntrega) estadoPago = 'pendiente';
+    else if (!completo) estadoPago = 'parcial';
+    else if (totalCuenta > 0 && totalDirecto > 0) estadoPago = 'parcial';
+    else if (totalCuenta > 0) estadoPago = 'a_cuenta';
+    else estadoPago = 'pagada';
 
     db.update(ventas)
       .set({

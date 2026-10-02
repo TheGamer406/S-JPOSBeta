@@ -100,10 +100,11 @@ export const esquemaEntregaItem = z.object({
   cantidadEntregada: z.number().int().nonnegative(),
 });
 
-// Pago de la entrega cuando el cliente paga contra entrega (no a cuenta): el
-// monto lo calcula el servidor a partir de lo entregado, nunca el cliente.
+// Pago de la entrega: igual que cobrar una venta normal — el cajero elige en el
+// momento si se paga ahora (cualquier medio) o se carga a la cuenta del cliente.
+// El monto lo calcula el servidor a partir de lo entregado, nunca el cliente.
 export const esquemaPagoEntrega = z.object({
-  metodo: z.enum(['efectivo', 'efectivo_usd', 'sinpe', 'datafono_bac', 'datafono_bn']),
+  metodo: z.enum(['efectivo', 'efectivo_usd', 'sinpe', 'datafono_bac', 'datafono_bn', 'cuenta']),
   recibido: z.number().int().positive().optional(),
   montoUsd: z.number().int().positive().optional(),
   referencia: z.string().optional(),
