@@ -8,6 +8,20 @@
       "when": 1790911280557,
       "tag": "0000_giant_purifiers",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790916847446,
+      "tag": "0001_milky_patriot",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790916890471,
+      "tag": "0002_tranquil_iron_patriot",
+      "breakpoints": true
     }
   ]
 }

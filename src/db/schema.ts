@@ -51,6 +51,11 @@ export const clientes = sqliteTable('clientes', {
   contactoEncargado: text('contacto_encargado'),
   limiteCredito: integer('limite_credito'),
   estado: text('estado', { enum: ['activo', 'bloqueado'] }).notNull().default('activo'),
+  // Pedidos programados (§3.5, §8 decisión 1): si se cargan a cuenta al entregar
+  // o si el cliente paga contra entrega. Configurable por cliente.
+  modoPagoDefault: text('modo_pago_default', { enum: ['cuenta', 'contra_entrega'] })
+    .notNull()
+    .default('cuenta'),
   notas: text('notas'),
   creadoEn: text('creado_en').notNull().default(sql`(current_timestamp)`),
 });
@@ -79,8 +84,11 @@ export const sesionesCaja = sqliteTable('sesiones_caja', {
 
 export const ventas = sqliteTable('ventas', {
   id: text('id').primaryKey(),
-  sesionCajaId: text('sesion_caja_id').notNull().references(() => sesionesCaja.id),
-  numeroOrdenDia: integer('numero_orden_dia').notNull(), // reinicia cada día
+  // Nulo hasta que se asocia a una sesión real: un pedido programado (§3.5) se
+  // puede crear días antes del evento, cuando todavía no hay caja abierta. Se
+  // asignan al momento de la primera entrega, dentro de la sesión activa de ese día.
+  sesionCajaId: text('sesion_caja_id').references(() => sesionesCaja.id),
+  numeroOrdenDia: integer('numero_orden_dia'), // reinicia cada día
   tipo: text('tipo', { enum: ['mostrador', 'programado'] }).notNull(),
 
   clienteId: text('cliente_id').references(() => clientes.id),

@@ -1,0 +1,1 @@
+ALTER TABLE `clientes` ADD `modo_pago_default` text DEFAULT 'cuenta' NOT NULL;
