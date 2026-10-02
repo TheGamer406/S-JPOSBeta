@@ -8,6 +8,24 @@ import type { z } from 'zod';
 
 export class CajaError extends Error {}
 
+/** Entradas/salidas de efectivo fuera de ventas (§3.7): hielo, gas, cambio agregado... */
+export async function registrarMovimientoCaja(
+  sesionCajaId: string,
+  tipo: 'entrada' | 'salida',
+  monto: number,
+  motivo: string,
+  usuarioId: string,
+) {
+  const [sesion] = await db.select().from(sesionesCaja).where(eq(sesionesCaja.id, sesionCajaId));
+  if (!sesion) throw new CajaError('Sesión de caja no encontrada');
+  if (sesion.estado !== 'abierta') throw new CajaError('La sesión ya está cerrada');
+
+  const id = randomUUID();
+  db.insert(movimientosCaja).values({ id, sesionCajaId, tipo, monto, motivo, usuarioId }).run();
+  const [movimiento] = await db.select().from(movimientosCaja).where(eq(movimientosCaja.id, id));
+  return movimiento;
+}
+
 /** "Sin caja abierta no se puede vender" (§3.1). */
 export async function abrirCaja(input: z.infer<typeof esquemaAbrirCaja>, usuarioId: string) {
   const sesionExistente = await db
@@ -56,30 +74,39 @@ export async function calcularCierre(sesionCajaId: string) {
     .from(pagos)
     .where(and(eq(pagos.sesionCajaId, sesionCajaId), eq(pagos.anulado, false)));
 
+  // Un pago con venta_id es una venta; sin venta_id es un abono a cuenta (§3.6).
+  // El reporte (§3.8) los muestra separados: "TOTAL VENDIDO" vs. "ABONOS A CUENTAS
+  // RECIBIDOS" — mezclarlos haría ver como venta algo que es cobro de una deuda vieja.
+  const pagosVenta = pagosSesion.filter((pago) => pago.ventaId !== null);
+  const pagosAbono = pagosSesion.filter((pago) => pago.ventaId === null);
+
   const totalesPorMedio: ResumenMedio[] = [];
-  const porMetodo = new Map<string, { cantidad: number; monto: number }>();
-  for (const pago of pagosSesion) {
-    const actual = porMetodo.get(pago.metodo) ?? { cantidad: 0, monto: 0 };
+  const porMetodoVenta = new Map<string, { cantidad: number; monto: number }>();
+  for (const pago of pagosVenta) {
+    const actual = porMetodoVenta.get(pago.metodo) ?? { cantidad: 0, monto: 0 };
     actual.cantidad += 1;
     actual.monto += pago.monto;
-    porMetodo.set(pago.metodo, actual);
+    porMetodoVenta.set(pago.metodo, actual);
   }
-  for (const [medio, valores] of porMetodo) {
+  for (const [medio, valores] of porMetodoVenta) {
     totalesPorMedio.push({ medio, ...valores });
   }
 
-  const totalVendido = pagosSesion.reduce((suma, pago) => suma + pago.monto, 0);
+  const totalVendido = pagosVenta.reduce((suma, pago) => suma + pago.monto, 0);
+  const abonosRecibidos = pagosAbono.reduce((suma, pago) => suma + pago.monto, 0);
 
+  // El efectivo esperado en caja sí suma TODO el efectivo físico, venga de una
+  // venta o de un abono — ambos agregan billetes a la gaveta.
   const vueltosUsd = pagosSesion
     .filter((pago) => pago.metodo === 'efectivo_usd')
     .reduce((suma, pago) => suma + (pago.vuelto ?? 0), 0);
 
-  const efectivoCrc = porMetodo.get('efectivo')?.monto ?? 0;
-  const dolaresPagados = porMetodo.get('efectivo_usd')
-    ? pagosSesion
-        .filter((pago) => pago.metodo === 'efectivo_usd')
-        .reduce((suma, pago) => suma + (pago.montoUsd ?? 0), 0)
-    : 0;
+  const efectivoCrc = pagosSesion
+    .filter((pago) => pago.metodo === 'efectivo')
+    .reduce((suma, pago) => suma + pago.monto, 0);
+  const dolaresPagados = pagosSesion
+    .filter((pago) => pago.metodo === 'efectivo_usd')
+    .reduce((suma, pago) => suma + (pago.montoUsd ?? 0), 0);
 
   const movimientos = await db
     .select()
@@ -94,13 +121,19 @@ export async function calcularCierre(sesionCajaId: string) {
 
   const efectivoEsperado = sesion.fondoInicial + efectivoCrc - vueltosUsd - salidas + entradas;
 
-  const loteBac = porMetodo.get('datafono_bac')?.monto ?? 0;
-  const loteBn = porMetodo.get('datafono_bn')?.monto ?? 0;
+  // El lote del datáfono cuadra contra TODO lo que pasó por él, venta o abono.
+  const loteBac = pagosSesion
+    .filter((pago) => pago.metodo === 'datafono_bac')
+    .reduce((suma, pago) => suma + pago.monto, 0);
+  const loteBn = pagosSesion
+    .filter((pago) => pago.metodo === 'datafono_bn')
+    .reduce((suma, pago) => suma + pago.monto, 0);
 
   return {
     sesion,
     totalesPorMedio,
     totalVendido,
+    abonosRecibidos,
     efectivoEsperado,
     dolaresPagados,
     loteSistemaBac: loteBac,

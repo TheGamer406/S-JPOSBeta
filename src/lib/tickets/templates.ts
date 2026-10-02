@@ -250,6 +250,7 @@ export function ticketCierre(datos: {
   cerroUsuario: string;
   totalesPorMedio: { medio: MedioPago; cantidad: number; monto: number }[];
   totalVendido: number;
+  abonosRecibidos: number;
   efectivoEsperado: number;
   efectivoContado: number;
   diferenciaEfectivo: number;
@@ -271,6 +272,7 @@ export function ticketCierre(datos: {
       ),
       { tipo: 'separador' },
       { tipo: 'texto', texto: `TOTAL VENDIDO: ${formatoCRC(datos.totalVendido)}`, negrita: true },
+      { tipo: 'texto', texto: `Abonos recibidos: ${formatoCRC(datos.abonosRecibidos)}` },
       { tipo: 'separador' },
       { tipo: 'texto', texto: `Efectivo esperado: ${formatoCRC(datos.efectivoEsperado)}` },
       { tipo: 'texto', texto: `Efectivo contado: ${formatoCRC(datos.efectivoContado)}` },

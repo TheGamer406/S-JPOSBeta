@@ -20,6 +20,7 @@ export interface ReporteCierre {
   cerroUsuario: string;
   totalesPorMedio: { medio: string; cantidad: number; monto: number }[];
   totalVendido: number;
+  abonosRecibidos: number;
   efectivoEsperado: number;
   dolaresPagados: number;
   loteSistemaBac: number;

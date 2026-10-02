@@ -43,6 +43,10 @@ export function generarPdfCierre(reporte: ReporteCierre): PDFKit.PDFDocument {
   doc.text(`  Anuladas: ${reporte.anuladas.cantidad} · ${formatoCRC(reporte.anuladas.monto)}`);
   doc.moveDown();
 
+  doc.fontSize(13).text('ABONOS A CUENTAS RECIBIDOS');
+  doc.fontSize(10).text(`  ${formatoCRC(reporte.abonosRecibidos)}`);
+  doc.moveDown();
+
   doc.fontSize(13).text('EFECTIVO');
   doc.fontSize(10);
   doc.text(`  Fondo inicial: ${formatoCRC(reporte.sesion.fondoInicial)}`);

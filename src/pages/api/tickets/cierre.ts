@@ -48,6 +48,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       monto: fila.monto,
     })),
     totalVendido: resumen.totalVendido,
+    abonosRecibidos: resumen.abonosRecibidos,
     efectivoEsperado: resumen.efectivoEsperado,
     efectivoContado: sesion.efectivoContado ?? resumen.efectivoEsperado,
     diferenciaEfectivo: sesion.diferenciaEfectivo ?? 0,
