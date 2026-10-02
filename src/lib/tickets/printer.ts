@@ -16,6 +16,16 @@ export interface ConfiguracionImpresora {
  */
 export class ImpresionFallidaError extends Error {}
 
+/**
+ * Ninguna de las páginas de código ESC/POS que soporta node-thermal-printer tiene
+ * el signo de colón (₡, U+20A1) — es un símbolo demasiado raro. Sale como "?" en
+ * cualquier impresora térmica. Se sustituye solo en lo que se manda a imprimir;
+ * en pantalla (preview.ts) y en el PDF (que usa una fuente propia) sigue el ₡ real.
+ */
+function paraImpresora(texto: string): string {
+  return texto.replace(/₡/g, 'C ');
+}
+
 export async function imprimirTicket(
   ticket: Ticket,
   config: ConfiguracionImpresora,
@@ -42,7 +52,7 @@ export async function imprimirTicket(
           if (linea.negrita) impresora.bold(true);
           if (linea.grande) impresora.setTextDoubleHeight();
 
-          impresora.println(linea.texto);
+          impresora.println(paraImpresora(linea.texto));
 
           if (linea.grande) impresora.setTextNormal();
           if (linea.negrita) impresora.bold(false);
@@ -60,7 +70,7 @@ export async function imprimirTicket(
         case 'firma':
           impresora.alignCenter();
           impresora.println('______________________________');
-          impresora.println(linea.etiqueta);
+          impresora.println(paraImpresora(linea.etiqueta));
           break;
 
         case 'qr':

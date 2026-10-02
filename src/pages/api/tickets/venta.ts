@@ -58,11 +58,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     ticket = ticketCargoCuenta({
       numeroOrden: venta.numeroOrdenDia ?? 0,
       fechaHora: venta.creadoEn,
-      cajero: cajero?.nombre ?? '—',
+      cajero: cajero?.nombre ?? '-',
       items: itemsTicket,
       total: venta.total,
-      numeroCuenta: cliente?.numeroCuenta ?? '—',
-      nombre: cliente?.nombre ?? '—',
+      numeroCuenta: cliente?.numeroCuenta ?? '-',
+      nombre: cliente?.nombre ?? '-',
       saldoAnterior: saldoActual - (movimientoCargo?.monto ?? 0),
       saldoNuevo: saldoActual,
     });
@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     ticket = ticketVenta({
       numeroOrden: venta.numeroOrdenDia ?? 0,
       fechaHora: venta.creadoEn,
-      cajero: cajero?.nombre ?? '—',
+      cajero: cajero?.nombre ?? '-',
       items: itemsTicket,
       total: venta.total,
       pagos: pagosParaTicket,

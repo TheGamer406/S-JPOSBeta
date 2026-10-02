@@ -178,11 +178,13 @@ export function ticketCargoCuenta(datos: {
       { tipo: 'separador' },
       { tipo: 'texto', texto: `TOTAL: ${formatoCRC(datos.total)}`, negrita: true, grande: true },
       { tipo: 'separador' },
-      { tipo: 'texto', texto: `Cuenta: ${datos.numeroCuenta} — ${datos.nombre}` },
+      { tipo: 'texto', texto: `Cuenta: ${datos.numeroCuenta} - ${datos.nombre}` },
       { tipo: 'texto', texto: `Saldo anterior: ${formatoCRC(datos.saldoAnterior)}` },
       { tipo: 'texto', texto: `Saldo nuevo: ${formatoCRC(datos.saldoNuevo)}`, negrita: true },
-      { tipo: 'espacio' },
       { tipo: 'texto', texto: 'Acepto el cargo a mi cuenta', align: 'centro' },
+      { tipo: 'espacio' },
+      { tipo: 'espacio' },
+      { tipo: 'espacio' },
       { tipo: 'firma', etiqueta: 'Firma del cliente' },
       ...PIE_LEGAL,
     ],
@@ -204,7 +206,7 @@ export function ticketAbono(datos: {
     lineas: [
       ...ENCABEZADO,
       { tipo: 'texto', texto: 'ABONO A CUENTA', align: 'centro', negrita: true },
-      { tipo: 'texto', texto: `Cuenta: ${datos.numeroCuenta} — ${datos.nombre}` },
+      { tipo: 'texto', texto: `Cuenta: ${datos.numeroCuenta} - ${datos.nombre}` },
       { tipo: 'texto', texto: datos.fechaHora },
       { tipo: 'separador' },
       { tipo: 'texto', texto: `Monto abonado: ${formatoCRC(datos.monto)}`, negrita: true },
@@ -228,7 +230,7 @@ export function ticketEstadoCuenta(datos: {
     lineas: [
       ...ENCABEZADO,
       { tipo: 'texto', texto: 'ESTADO DE CUENTA', align: 'centro', negrita: true },
-      { tipo: 'texto', texto: `Cuenta: ${datos.numeroCuenta} — ${datos.nombre}` },
+      { tipo: 'texto', texto: `Cuenta: ${datos.numeroCuenta} - ${datos.nombre}` },
       { tipo: 'separador' },
       ...datos.movimientos.map(
         (movimiento): LineaItem => ({
@@ -262,7 +264,7 @@ export function ticketCierre(datos: {
       ...ENCABEZADO,
       { tipo: 'texto', texto: 'CIERRE DE CAJA', align: 'centro', negrita: true },
       { tipo: 'texto', texto: `Caja: ${datos.dispositivo}` },
-      { tipo: 'texto', texto: `Abrió: ${datos.abrioUsuario} · Cerró: ${datos.cerroUsuario}` },
+      { tipo: 'texto', texto: `Abrió: ${datos.abrioUsuario} - Cerró: ${datos.cerroUsuario}` },
       { tipo: 'separador' },
       ...datos.totalesPorMedio.map(
         (fila): LineaItem => ({

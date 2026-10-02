@@ -1,8 +1,15 @@
 // Utilidades de dinero (§3.3). Todo se guarda y calcula como colones enteros:
 // el colón no usa céntimos en la práctica, así se evitan errores de redondeo.
 
+/**
+ * Separador de miles a mano (no toLocaleString('es-CR')): esa función usa un
+ * espacio especial (U+00A0, no separable) que la impresora térmica no sabe
+ * representar y lo imprime como "?" — rompe justo al lado de cada cifra.
+ */
 export function formatoCRC(monto: number): string {
-  return `₡${Math.round(monto).toLocaleString('es-CR')}`;
+  const entero = Math.round(monto);
+  const conSeparadores = Math.abs(entero).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return `₡${entero < 0 ? '-' : ''}${conSeparadores}`;
 }
 
 export function formatoUSD(monto: number): string {

@@ -41,8 +41,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const ticket = ticketCierre({
     dispositivo: sesion.dispositivo,
-    abrioUsuario: abrio?.nombre ?? '—',
-    cerroUsuario: cerro?.nombre ?? '—',
+    abrioUsuario: abrio?.nombre ?? '-',
+    cerroUsuario: cerro?.nombre ?? '-',
     totalesPorMedio: resumen.totalesPorMedio.map((fila) => ({
       medio: fila.medio as 'efectivo' | 'efectivo_usd' | 'sinpe' | 'datafono_bac' | 'datafono_bn' | 'cuenta',
       cantidad: fila.cantidad,
