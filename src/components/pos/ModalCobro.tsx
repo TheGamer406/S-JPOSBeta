@@ -27,7 +27,7 @@ interface ModalCobroProps {
   total: number;
   tipoCambioUsd: number;
   nombreReferencia?: string;
-  onConfirmado: (ventaId: string) => void;
+  onConfirmado: (ventaId: string, avisoLimite?: string) => void;
   onCancelar: () => void;
 }
 
@@ -162,7 +162,10 @@ export default function ModalCobro({
       return;
     }
 
-    onConfirmado(cuerpo.venta.id);
+    const avisoLimite = cuerpo.saldoCliente?.pasaLimite
+      ? `Esta cuenta pasó su límite de crédito (saldo nuevo: ${formatoCRC(cuerpo.saldoCliente.saldoNuevo)})`
+      : undefined;
+    onConfirmado(cuerpo.venta.id, avisoLimite);
   }
 
   return (

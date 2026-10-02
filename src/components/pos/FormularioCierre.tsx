@@ -14,9 +14,12 @@ interface ResumenMedio {
 
 export default function FormularioCierre() {
   const [sesionId, setSesionId] = useState<string | null>(null);
-  const [resumen, setResumen] = useState<{ totalesPorMedio: ResumenMedio[]; totalVendido: number; efectivoEsperado: number } | null>(
-    null,
-  );
+  const [resumen, setResumen] = useState<{
+    totalesPorMedio: ResumenMedio[];
+    totalVendido: number;
+    abonosRecibidos: number;
+    efectivoEsperado: number;
+  } | null>(null);
   const [denominaciones, setDenominaciones] = useState<Record<string, string>>({});
   const [denominacionesUsd, setDenominacionesUsd] = useState<Record<string, string>>({});
   const [loteBac, setLoteBac] = useState('');
@@ -92,6 +95,7 @@ export default function FormularioCierre() {
       {resumen && (
         <div class="rounded bg-[var(--background_color_2)] p-4">
           <p>Total vendido: {formatoCRC(resumen.totalVendido)}</p>
+          <p>Abonos recibidos: {formatoCRC(resumen.abonosRecibidos)}</p>
           <p>Efectivo esperado: {formatoCRC(resumen.efectivoEsperado)}</p>
           <ul class="mt-2 text-sm text-[var(--text_color_2)]">
             {resumen.totalesPorMedio.map((fila) => (

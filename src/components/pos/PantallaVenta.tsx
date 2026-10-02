@@ -77,7 +77,7 @@ export default function PantallaVenta() {
     );
   }
 
-  async function alConfirmarVenta(ventaId: string) {
+  async function alConfirmarVenta(ventaId: string, avisoLimite?: string) {
     setMostrarCobro(false);
     setCarrito([]);
     setNombreReferencia('');
@@ -88,8 +88,11 @@ export default function PantallaVenta() {
       body: JSON.stringify({ ventaId }),
     });
     const emision = await respuesta.json();
+    const aviso = [avisoLimite, emision.error].filter(Boolean).join(' · ');
     if (emision.html) {
-      setVistaPrevia({ html: emision.html, aviso: emision.error });
+      setVistaPrevia({ html: emision.html, aviso: aviso || undefined });
+    } else if (avisoLimite) {
+      setVistaPrevia({ html: '', aviso: avisoLimite });
     }
   }
 
