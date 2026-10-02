@@ -30,7 +30,10 @@ export interface ReporteVentas {
  * de datos de un evento tiene cientos de ventas, no millones.
  */
 export async function obtenerReporteVentas(filtros: FiltrosReporte): Promise<ReporteVentas> {
-  const condiciones = [ne(ventas.estadoPago, 'anulada')];
+  // Los pedidos programados son el PLAN de un día futuro, no una venta hecha:
+  // contarlos acá inflaba los reportes (y duplicaba, porque al despacharlos se
+  // crea una venta real aparte con lo que sí salió). Solo cuentan las ventas.
+  const condiciones = [ne(ventas.estadoPago, 'anulada'), ne(ventas.tipo, 'programado')];
   if (filtros.fechaInicio) condiciones.push(gte(ventas.creadoEn, filtros.fechaInicio));
   if (filtros.fechaFin) condiciones.push(lte(ventas.creadoEn, `${filtros.fechaFin} 23:59:59`));
 

@@ -69,6 +69,36 @@ export async function anularVenta(ventaId: string, motivo: string, adminId: stri
 
     db.update(pagos).set({ anulado: true }).where(eq(pagos.ventaId, ventaId)).run();
 
+    // Si esta venta salió de un pedido programado (§3.5), lo despachado vuelve a
+    // quedar pendiente en el plan. Sin esto, anular un despacho dejaba esos
+    // productos en el limbo: ni entregados de verdad ni disponibles de nuevo.
+    if (venta.programadoOrigenId) {
+      const lineas = sqlite
+        .prepare('SELECT plan_item_id AS planItemId, cantidad FROM venta_items WHERE venta_id = ? AND plan_item_id IS NOT NULL')
+        .all(ventaId) as { planItemId: string; cantidad: number }[];
+
+      for (const linea of lineas) {
+        sqlite
+          .prepare('UPDATE venta_items SET cantidad_entregada = MAX(0, cantidad_entregada - ?) WHERE id = ?')
+          .run(linea.cantidad, linea.planItemId);
+      }
+
+      // El plan deja de estar "entregado" si volvió a quedar algo pendiente.
+      const itemsPlan = sqlite
+        .prepare('SELECT cantidad, cantidad_entregada AS entregada FROM venta_items WHERE venta_id = ?')
+        .all(venta.programadoOrigenId) as { cantidad: number; entregada: number }[];
+      const todoEntregado = itemsPlan.every((item) => item.entregada >= item.cantidad);
+      const algoEntregado = itemsPlan.some((item) => item.entregada > 0);
+
+      db.update(ventas)
+        .set({
+          estadoPedido: todoEntregado ? 'entregado' : algoEntregado ? 'preparacion' : 'pendiente',
+          entregadoEn: todoEntregado ? undefined : null,
+        })
+        .where(eq(ventas.id, venta.programadoOrigenId))
+        .run();
+    }
+
     if (venta.clienteId && (venta.estadoPago === 'a_cuenta' || venta.estadoPago === 'parcial')) {
       const cargosVenta = sqlite
         .prepare("SELECT monto FROM movimientos_cuenta WHERE venta_id = ? AND tipo = 'cargo'")

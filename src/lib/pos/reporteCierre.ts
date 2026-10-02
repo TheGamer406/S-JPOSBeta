@@ -44,7 +44,11 @@ export async function construirReporteCierre(sesionCajaId: string): Promise<Repo
     : [undefined];
 
   const ventasSesion = await db.select().from(ventas).where(eq(ventas.sesionCajaId, sesionCajaId));
-  const ventasValidas = ventasSesion.filter((venta) => venta.estadoPago !== 'anulada');
+  // Un programado nunca debería tener sesión (es un plan, no una venta), pero el
+  // filtro explícito evita que un dato viejo o un bug futuro infle el cierre.
+  const ventasValidas = ventasSesion.filter(
+    (venta) => venta.estadoPago !== 'anulada' && venta.tipo !== 'programado',
+  );
   const ventasAnuladas = ventasSesion.filter((venta) => venta.estadoPago === 'anulada');
 
   const idsVentasValidas = ventasValidas.map((venta) => venta.id);
