@@ -1,0 +1,56 @@
+---
+// Página de desarrollo: muestra los tiquetes en pantalla sin necesitar impresora
+// ni papel térmico. Útil mientras no se confirma el modelo de la Epson (§8, decisión 4)
+// o simplemente no hay rollos a la mano. No usar en producción (sin login ni datos reales).
+import '@/styles/global.css';
+import { ticketVenta, ticketAperturaCuenta, ticketCargoCuenta } from '@/lib/tickets/templates';
+import { renderizarTicketHtml } from '@/lib/tickets/preview';
+
+const venta = ticketVenta({
+  numeroOrden: 12,
+  fechaHora: '03/10/2026 14:22',
+  cajero: 'José',
+  items: [
+    { nombre: 'Chifrijo', cantidad: 2, subtotal: 8200 },
+    { nombre: 'Refresco', cantidad: 2, subtotal: 3000, nota: 'sin hielo' },
+  ],
+  total: 11200,
+  medioPago: 'efectivo',
+  recibido: 20000,
+  vuelto: 8800,
+});
+
+const apertura = ticketAperturaCuenta({
+  numeroCuenta: 'S&J0012',
+  nombre: 'Marco Bogantes',
+  cedula: '1-1234-0567',
+  tipo: 'Empresa (Vindi)',
+  fechaHora: '03/10/2026 14:22',
+  abrioUsuario: 'José',
+});
+
+const cargo = ticketCargoCuenta({
+  numeroOrden: 13,
+  fechaHora: '03/10/2026 14:30',
+  cajero: 'José',
+  items: [{ nombre: 'Casado con bisteck', cantidad: 3, subtotal: 12300 }],
+  total: 12300,
+  numeroCuenta: 'S&J0012',
+  nombre: 'Marco Bogantes',
+  saldoAnterior: 0,
+  saldoNuevo: 12300,
+});
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>S&J POS — Vista previa de tiquetes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body class="flex min-h-screen flex-wrap items-start justify-center gap-8 p-8">
+    <div set:html={renderizarTicketHtml(venta)} />
+    <div set:html={renderizarTicketHtml(apertura)} />
+    <div set:html={renderizarTicketHtml(cargo)} />
+  </body>
+</html>
