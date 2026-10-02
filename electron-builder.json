@@ -1,0 +1,56 @@
+{
+  "appId": "com.sj.pos",
+  "productName": "S&J POS",
+  "copyright": "Copyright © 2025 S&J Parrilladas y Catering Service",
+  "directories": {
+    "output": "dist-electron",
+    "buildResources": "assets"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "drizzle/**/*",
+    "sj-pos.db",
+    "node_modules/**/*",
+    "package.json"
+  ],
+  "asarUnpack": [
+    "dist/**/*",
+    "node_modules/**/*",
+    "drizzle/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "sj-pos.db",
+      "to": "sj-pos.db"
+    }
+  ],
+  "linux": {
+    "target": [
+      "AppImage",
+      "deb"
+    ],
+    "category": "Office",
+    "icon": "assets/icon.png",
+    "maintainer": "S&J Parrilladas y Catering Service"
+  },
+  "appImage": {
+    "artifactName": "sj-pos-${version}.${ext}"
+  },
+  "deb": {
+    "depends": [
+      "libnss3",
+      "libatk-bridge2.0-0",
+      "libdrm2",
+      "libxkbcommon0",
+      "libxcomposite1",
+      "libxdamage1",
+      "libxrandr2",
+      "libgbm1",
+      "libasound2"
+    ]
+  },
+  "npmRebuild": false,
+  "nodeGypRebuild": false,
+  "forceCodeSigning": false
+}

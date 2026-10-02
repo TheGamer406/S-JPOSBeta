@@ -12,3 +12,7 @@ respaldos/
 # Electron
 out/
 release/
+
+# Salida del empaquetado de Electron
+release/
+dist-electron/

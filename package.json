@@ -5,12 +5,15 @@
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
+  "author": "S&J Parrilladas y Catering Service",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "electron": "electron .",
     "electron:dev": "concurrently -k \"astro dev\" \"wait-on http://localhost:4321 && electron .\"",
+    "electron:build": "npm run build && electron-builder --linux",
+    "electron:build:dir": "npm run build && electron-builder --linux --dir",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx seed/seed.ts"
@@ -42,5 +45,45 @@
     "tsx": "^4.19.1",
     "typescript": "^5.6.3",
     "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "cr.sj.pos",
+    "productName": "S&J POS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "drizzle/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "dist/**",
+      "drizzle/**",
+      "assets/**",
+      "electron/**",
+      "**/node_modules/better-sqlite3/**",
+      "**/node_modules/bindings/**",
+      "**/node_modules/file-uri-to-path/**",
+      "**/node_modules/drizzle-orm/**"
+    ],
+    "npmRebuild": true,
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office",
+      "artifactName": "S-J-POS-${version}.${ext}"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "S-J-POS-Setup-${version}.${ext}"
+    },
+    "buildDependenciesFromSource": true,
+    "nodeGypRebuild": false
   }
 }
