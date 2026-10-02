@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* Tokens de PLAN_POS_SJ.md §7 — mismos que S-JParilladasCateringService_webpage + extensiones del POS */
+:root {
+  --background_color_1: #1a1a1a;
+  --background_color_2: #121212;
+  --principal-color: #e60000;
+  --accent_color: #ff5722;
+  --text_color_1: #ffffff;
+  --text_color_2: #cccccc;
+  --gold: #f5b21b;
+  --teja: #d63a1e;
+
+  /* Colores por medio de pago (§3.3) — siempre junto a texto, nunca solo color */
+  --pago-efectivo-crc: #2e7d32;
+  --pago-efectivo-usd: #66bb6a;
+  --pago-sinpe: #1565c0;
+  --pago-bac: #c62828;
+  --pago-bn: #1b5e20;
+  --pago-cuenta: #f5b21b;
+}
+
+.light_theme {
+  --background_color_1: #ffffff;
+  --background_color_2: #f2f2f2;
+  --text_color_1: #1a1a1a;
+  --text_color_2: #3a3a3a;
+}
+
+body {
+  background-color: var(--background_color_1);
+  color: var(--text_color_1);
+  font-family: 'Roboto', system-ui, sans-serif;
+}
+
+.monto,
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.marca {
+  font-family: 'Kalam', cursive;
+}
+
+/* Botones táctiles del POS (§7): mínimo 64px de alto para dedos y prisa */
+.boton-pos {
+  min-height: 64px;
+}
