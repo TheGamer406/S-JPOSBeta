@@ -110,12 +110,27 @@
 - `src/lib/tickets/` — plantillas + impresión ESC/POS + vista previa HTML.
 - `src/db/schema.ts` y `src/db/contadores.ts` — tablas y consecutivos ya listos.
 
-## Decisión pendiente antes de imprimir de verdad
+## Decisión del §8, punto 4 — ya resuelta
 
-PLAN_POS_SJ.md §8, tabla de "Decisiones pendientes", punto 4: falta confirmar el
-**modelo de la Epson**, si es **USB o red**, el **ancho de papel** (80/58 mm) y si tiene
-**gaveta**. Hasta no tener la impresora (y el papel) a la mano, usar siempre
-`/tickets-demo` o `emitirTicket(ticket, null)` para ver el diseño en pantalla.
+No es una Epson: es una **AON, por USB, papel de 80 mm**. No importa — ambas hablan
+ESC/POS, que es lo que ya implementa `src/lib/tickets/printer.ts`. Probado con la
+impresora física conectada:
+
+- En Linux aparece como `/dev/usb/lp0`; el usuario que corre la app necesita estar
+  en el grupo `lp` del sistema (`sudo usermod -aG lp "$USER"`, requiere volver a
+  iniciar sesión).
+- `obtenerConfigImpresora()` (`src/lib/pos/configuracionImpresora.ts`) lee
+  `SJ_POS_IMPRESORA_INTERFAZ` / `_ANCHO` / `_GAVETA` de variables de entorno — ver
+  README. Las 6 rutas de tiquetes (`venta`, `comanda`, `apertura-cuenta`, `abono`,
+  `estado-cuenta`, `cierre`) ya la usan en vez de pasar `null` a mano.
+- Probado con curl: `POST /api/tickets/venta` con `SJ_POS_IMPRESORA_INTERFAZ=/dev/usb/lp0`
+  devolvió `{"impreso": true}` y el tiquete salió físicamente en la impresora
+  (confirmado por el usuario: encabezado, producto, total, vuelto y corte de papel).
+- **No probado todavía**: la gaveta de dinero (si la tiene conectada) y el ancho
+  real de 58 mm (se asume 80 mm porque es lo que confirmó el usuario).
+- Sin la variable de entorno configurada (como en cualquier otra máquina sin la
+  impresora a mano), `emitirTicket()` sigue cayendo sola a la vista previa en
+  pantalla — se puede seguir usando `/tickets-demo` para ver el diseño.
 
 ## Referencias al plan
 

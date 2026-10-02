@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '@/db/client';
 import { clientes } from '@/db/schema';
 import { emitirTicket } from '@/lib/tickets';
+import { obtenerConfigImpresora } from '@/lib/pos/configuracionImpresora';
 import { ticketAperturaCuenta } from '@/lib/tickets/templates';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
 
@@ -36,6 +37,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     abrioUsuario: usuario.nombre,
   });
 
-  const emision = await emitirTicket(ticket, null);
+  const emision = await emitirTicket(ticket, obtenerConfigImpresora());
   return new Response(JSON.stringify(emision), { status: 200 });
 };

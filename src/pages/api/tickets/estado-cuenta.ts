@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { emitirTicket } from '@/lib/tickets';
+import { obtenerConfigImpresora } from '@/lib/pos/configuracionImpresora';
 import { ticketEstadoCuenta } from '@/lib/tickets/templates';
 import { CuentaError, obtenerEstadoCuenta } from '@/lib/pos/cuentas';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
@@ -37,6 +38,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     saldoFinal: estado.saldo,
   });
 
-  const emision = await emitirTicket(ticket, null);
+  const emision = await emitirTicket(ticket, obtenerConfigImpresora());
   return new Response(JSON.stringify(emision), { status: 200 });
 };

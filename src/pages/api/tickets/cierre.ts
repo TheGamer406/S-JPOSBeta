@@ -5,6 +5,7 @@ import { db } from '@/db/client';
 import { sesionesCaja, usuarios } from '@/db/schema';
 import { calcularCierre, CajaError } from '@/lib/pos/caja';
 import { emitirTicket } from '@/lib/tickets';
+import { obtenerConfigImpresora } from '@/lib/pos/configuracionImpresora';
 import { ticketCierre } from '@/lib/tickets/templates';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
 
@@ -54,6 +55,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     diferenciaEfectivo: sesion.diferenciaEfectivo ?? 0,
   });
 
-  const emision = await emitirTicket(ticket, null);
+  const emision = await emitirTicket(ticket, obtenerConfigImpresora());
   return new Response(JSON.stringify(emision), { status: 200 });
 };

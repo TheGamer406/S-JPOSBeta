@@ -34,17 +34,38 @@ usa otro nombre (ej. "Documentos" en vez de "Documents"). Si el respaldo falla (
 lleno, sin permisos), el cierre **no se revierte** — ya quedó guardado en la base de
 datos — pero la pantalla de cierre muestra el error para que se resuelva a mano.
 
-## Ver los tiquetes sin impresora ni papel
+## Impresora térmica
 
-Mientras no se confirme el modelo de la Epson ni haya papel térmico a la mano
-(ver `docs/fases/fase-1-mvp.md`), los tiquetes se pueden revisar en pantalla:
+§8 decisión 4, ya resuelta: es una **AON por USB, papel de 80 mm**. No hace falta que
+sea Epson — casi cualquier impresora térmica de recibo (AON, Epson, clones genéricos)
+habla el mismo protocolo ESC/POS, que es lo que ya usa `src/lib/tickets/printer.ts`.
+
+Para activarla, definir antes de `npm run dev` (o en `.env`):
+
+```bash
+SJ_POS_IMPRESORA_INTERFAZ=/dev/usb/lp0   # en Linux, la ruta que aparece al conectarla
+SJ_POS_IMPRESORA_ANCHO=80                # 80 o 58
+SJ_POS_IMPRESORA_GAVETA=false            # true si tiene gaveta de dinero conectada
+```
+
+En Linux, el usuario que corre la app necesita estar en el grupo `lp` (dueño del
+dispositivo `/dev/usb/lp0`):
+
+```bash
+sudo usermod -aG lp "$USER"
+# cerrar sesión y volver a entrar para que el grupo nuevo tome efecto
+```
+
+Sin `SJ_POS_IMPRESORA_INTERFAZ` configurada (o si falla el envío), `emitirTicket()`
+cae sola a la vista previa en pantalla — nunca se pierde un tiquete. Para ver el
+diseño sin tocar nada de esto:
 
 ```
 http://localhost:4321/tickets-demo
 ```
 
-Esa página usa el mismo código (`src/lib/tickets/`) que se usará para imprimir de
-verdad — el diseño no cambia cuando llegue la impresora, solo cambia a dónde se manda.
+Esa página usa el mismo código (`src/lib/tickets/`) que se usa para imprimir de
+verdad — el diseño no cambia según a dónde se manda.
 
 ## Estructura
 
