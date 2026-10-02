@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { CajaError, calcularCierre, cerrarCaja } from '@/lib/pos/caja';
 import { esquemaCerrarCaja } from '@/lib/pos/esquemas';
-import { esAdmin, puedeVender } from '@/lib/permisos';
+import { esAdmin } from '@/lib/permisos';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
 import { respaldarCierre } from '@/lib/pos/respaldos';
 
@@ -26,11 +26,12 @@ export const GET: APIRoute = async ({ url, cookies }) => {
   }
 };
 
+/** Solo admin cierra la caja (el cajero la opera, pero no la abre ni la cierra). */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const usuario = await obtenerUsuarioActual(cookies);
   if (!usuario) return new Response(JSON.stringify({ error: 'No autenticado' }), { status: 401 });
-  if (!puedeVender(usuario.rol) && !esAdmin(usuario.rol)) {
-    return new Response(JSON.stringify({ error: 'Sin permiso' }), { status: 403 });
+  if (!esAdmin(usuario.rol)) {
+    return new Response(JSON.stringify({ error: 'Solo un admin puede cerrar la caja' }), { status: 403 });
   }
 
   const resultado = esquemaCerrarCaja.safeParse(await request.json());

@@ -114,3 +114,14 @@ export const esquemaEntregarProgramado = z.object({
   entregas: z.array(esquemaEntregaItem).min(1),
   pago: esquemaPagoEntrega.optional(),
 });
+
+export const esquemaCrearUsuario = z.object({
+  nombre: z.string().min(1),
+  rol: z.enum(['admin', 'cajero', 'cocina']),
+  pin: z.string().regex(/^\d{4,6}$/, 'El PIN debe tener entre 4 y 6 dígitos'),
+});
+
+export const esquemaActualizarUsuario = z.object({
+  activo: z.boolean().optional(),
+  pin: z.string().regex(/^\d{4,6}$/, 'El PIN debe tener entre 4 y 6 dígitos').optional(),
+});

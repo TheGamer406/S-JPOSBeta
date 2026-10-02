@@ -1,27 +1,23 @@
 ---
 import '@/styles/global.css';
-import FormularioCierre from '@/components/pos/FormularioCierre';
+import PantallaUsuarios from '@/components/pos/PantallaUsuarios';
 import BarraNav from '@/components/pos/BarraNav.astro';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
-import { puedeVerDinero, esAdmin } from '@/lib/permisos';
+import { esAdmin } from '@/lib/permisos';
 
 const usuario = await obtenerUsuarioActual(Astro.cookies);
 if (!usuario) return Astro.redirect('/');
-if (!puedeVerDinero(usuario.rol)) return Astro.redirect('/cocina');
+if (!esAdmin(usuario.rol)) return Astro.redirect('/vender');
 ---
 
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>S&J POS — Cierre de caja</title>
+    <title>S&J POS — Usuarios</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
   </head>
   <body>
     <BarraNav rol={usuario.rol} />
-    {esAdmin(usuario.rol) ? (
-      <FormularioCierre client:load />
-    ) : (
-      <p class="p-6 text-[var(--text_color_2)]">Solo un admin puede cerrar la caja. Pedile a un admin que la cierre.</p>
-    )}
+    <PantallaUsuarios client:load />
   </body>
 </html>

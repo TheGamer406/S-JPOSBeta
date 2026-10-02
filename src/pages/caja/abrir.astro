@@ -2,7 +2,7 @@
 import '@/styles/global.css';
 import FormularioAperturaCaja from '@/components/pos/FormularioAperturaCaja';
 import { obtenerSesionCajaActiva, obtenerUsuarioActual } from '@/lib/pos/sesionActual';
-import { puedeVerDinero } from '@/lib/permisos';
+import { puedeVerDinero, esAdmin } from '@/lib/permisos';
 
 const usuario = await obtenerUsuarioActual(Astro.cookies);
 if (!usuario) return Astro.redirect('/');
@@ -20,7 +20,15 @@ if (sesionActiva) return Astro.redirect('/vender');
   </head>
   <body class="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
     <h1 class="marca text-3xl">Apertura de caja</h1>
-    <p class="text-[var(--text_color_2)]">Hola, {usuario.nombre} — antes de vender hay que abrir la caja.</p>
-    <FormularioAperturaCaja client:load />
+    {esAdmin(usuario.rol) ? (
+      <>
+        <p class="text-[var(--text_color_2)]">Hola, {usuario.nombre} — antes de vender hay que abrir la caja.</p>
+        <FormularioAperturaCaja client:load />
+      </>
+    ) : (
+      <p class="max-w-sm text-center text-[var(--text_color_2)]">
+        Hola, {usuario.nombre} — hace falta que un admin abra la caja antes de poder vender.
+      </p>
+    )}
   </body>
 </html>
