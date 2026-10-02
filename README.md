@@ -8,19 +8,35 @@ y qué ya está hecho.
 
 ## Abrir el POS con doble clic
 
-En la laptop del evento, una sola vez:
+### Windows (la laptop del evento)
+
+Doble clic en **`INICIAR-POS.bat`**. Nada más.
+
+La primera vez instala lo necesario (tarda unos minutos) y crea la base de
+datos con un usuario Admin de PIN `1234` — **cambialo desde Usuarios antes del
+evento**. Después de eso, cada doble clic levanta el POS y abre el navegador.
+
+Requisito único: tener [Node.js](https://nodejs.org) instalado (versión LTS).
+Si falta, el script lo dice y no hace nada más.
+
+La ventana negra que queda abierta **es** el POS: cerrarla lo apaga.
+
+### Linux
 
 ```bash
 ./instalar-acceso-directo.sh
 ```
 
-Eso crea el ícono **S&J POS** en el escritorio y en el menú de aplicaciones.
-De ahí en adelante se abre con doble clic: el script instala lo que falte,
-crea la base si no existe, levanta el servidor y abre el navegador. También
-muestra la dirección para entrar desde una tablet en el mismo WiFi (útil para
-la pantalla de cocina).
+Crea el ícono **S&J POS** en el escritorio y en el menú de aplicaciones; de ahí
+en adelante funciona igual que en Windows.
 
-La ventana de terminal que queda abierta **es** el POS: cerrarla lo apaga.
+### Tablet para la pantalla de cocina
+
+Al arrancar, el script muestra una dirección tipo `http://192.168.1.25:4321/cocina`.
+Esa es la que se abre en la tablet, conectada al mismo WiFi que la laptop.
+
+En Windows puede hacer falta permitir Node.js en el Firewall la primera vez
+(sale un aviso: elegir "Redes privadas").
 
 ## Arrancar en desarrollo
 
@@ -58,11 +74,20 @@ habla el mismo protocolo ESC/POS, que es lo que ya usa `src/lib/tickets/printer.
 
 Para activarla, definir antes de `npm run dev` (o en `.env`):
 
+**En Linux** (donde se probó):
+
 ```bash
-SJ_POS_IMPRESORA_INTERFAZ=/dev/usb/lp0   # en Linux, la ruta que aparece al conectarla
+SJ_POS_IMPRESORA_INTERFAZ=/dev/usb/lp0   # la ruta que aparece al conectarla
 SJ_POS_IMPRESORA_ANCHO=80                # 80 o 58
 SJ_POS_IMPRESORA_GAVETA=false            # true si tiene gaveta de dinero conectada
 ```
+
+**En Windows la ruta es distinta** y esto todavía no se ha probado ahí. No sirve
+`/dev/usb/lp0`: hay que instalar la impresora en Windows, compartirla con un
+nombre, y usar `printer:NOMBRE` — por ejemplo `SJ_POS_IMPRESORA_INTERFAZ=printer:AON80`.
+Conviene probarlo antes del evento, no el mismo día.
+
+Mientras no esté configurada, los tiquetes salen en pantalla y nada se pierde.
 
 En Linux, el usuario que corre la app necesita estar en el grupo `lp` (dueño del
 dispositivo `/dev/usb/lp0`):

@@ -1,0 +1,7 @@
+# Los .bat de Windows necesitan finales de línea CRLF: con LF, el intérprete
+# de comandos puede cortar mal las líneas y el archivo falla al ejecutarse.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Los scripts de Unix al revés: siempre LF, aunque se clonen en Windows.
+*.sh text eol=lf
