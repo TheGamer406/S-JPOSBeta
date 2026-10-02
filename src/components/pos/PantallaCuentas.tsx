@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { formatoCRC } from '@/lib/dinero';
 import BuscadorCliente from './BuscadorCliente';
 import ModalAbono from './ModalAbono';
+import ConfirmarImpresion from './ConfirmarImpresion';
 import VistaPreviaTicket from './VistaPreviaTicket';
 
 interface Cliente {
@@ -36,6 +37,7 @@ export default function PantallaCuentas() {
   const [mostrarAntiguedad, setMostrarAntiguedad] = useState(false);
   const [antiguedad, setAntiguedad] = useState<AntiguedadFila[]>([]);
   const [mostrarModalAbono, setMostrarModalAbono] = useState(false);
+  const [pagoPendienteImprimir, setPagoPendienteImprimir] = useState<string | null>(null);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,6 +69,14 @@ export default function PantallaCuentas() {
   async function alConfirmarAbono(pagoId: string) {
     setMostrarModalAbono(false);
     if (cliente) await cargarEstadoCuenta(cliente);
+    // El tiquete de abono es para el cliente — no todos lo piden (§3.10).
+    setPagoPendienteImprimir(pagoId);
+  }
+
+  async function imprimirTicketAbono() {
+    if (!pagoPendienteImprimir) return;
+    const pagoId = pagoPendienteImprimir;
+    setPagoPendienteImprimir(null);
 
     const ticketRespuesta = await fetch('/api/tickets/abono', {
       method: 'POST',
@@ -186,6 +196,10 @@ export default function PantallaCuentas() {
           onConfirmado={alConfirmarAbono}
           onCancelar={() => setMostrarModalAbono(false)}
         />
+      )}
+
+      {pagoPendienteImprimir && (
+        <ConfirmarImpresion onImprimir={imprimirTicketAbono} onSaltar={() => setPagoPendienteImprimir(null)} />
       )}
 
       {vistaPrevia && <VistaPreviaTicket html={vistaPrevia} onCerrar={() => setVistaPrevia(null)} />}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatoCRC } from '@/lib/dinero';
 import ModalCobro, { type ItemCarrito } from './ModalCobro';
+import ConfirmarImpresion from './ConfirmarImpresion';
 import VistaPreviaTicket from './VistaPreviaTicket';
 
 interface Categoria {
@@ -27,6 +28,7 @@ export default function PantallaVenta() {
   const [mostrarCobro, setMostrarCobro] = useState(false);
   const [imprimirComanda, setImprimirComanda] = useState(true);
   const [vistaPrevia, setVistaPrevia] = useState<{ html: string; aviso?: string } | null>(null);
+  const [pendienteImprimir, setPendienteImprimir] = useState<{ ventaId: string; avisoLimite?: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/productos')
@@ -91,18 +93,35 @@ export default function PantallaVenta() {
       }).catch(() => {}); // la comanda es de cocina, no debe bloquear el tiquete de venta
     }
 
+    // El tiquete de venta es para el cliente — no todos lo piden (§3.10), así que
+    // se pregunta en vez de imprimirlo siempre.
+    setPendienteImprimir({ ventaId, avisoLimite });
+  }
+
+  async function imprimirTicketVenta() {
+    if (!pendienteImprimir) return;
+    const { ventaId, avisoLimite } = pendienteImprimir;
+    setPendienteImprimir(null);
+
     const respuesta = await fetch('/api/tickets/venta', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ventaId }),
     });
     const emision = await respuesta.json();
-    const aviso = [avisoLimite, emision.error].filter(Boolean).join(' · ');
+    const aviso = [avisoLimite, emision.error].filter(Boolean).join(' - ');
     if (emision.html) {
       setVistaPrevia({ html: emision.html, aviso: aviso || undefined });
     } else if (avisoLimite) {
       setVistaPrevia({ html: '', aviso: avisoLimite });
     }
+  }
+
+  function saltarTicketVenta() {
+    if (!pendienteImprimir) return;
+    const { avisoLimite } = pendienteImprimir;
+    setPendienteImprimir(null);
+    if (avisoLimite) setVistaPrevia({ html: '', aviso: avisoLimite });
   }
 
   const total = carrito.reduce((suma, item) => suma + item.precio * item.cantidad, 0);
@@ -220,6 +239,8 @@ export default function PantallaVenta() {
           onCancelar={() => setMostrarCobro(false)}
         />
       )}
+
+      {pendienteImprimir && <ConfirmarImpresion onImprimir={imprimirTicketVenta} onSaltar={saltarTicketVenta} />}
 
       {vistaPrevia && (
         <VistaPreviaTicket html={vistaPrevia.html} aviso={vistaPrevia.aviso} onCerrar={() => setVistaPrevia(null)} />

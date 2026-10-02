@@ -1,4 +1,6 @@
 import { useState } from 'preact/hooks';
+import ConfirmarImpresion from './ConfirmarImpresion';
+import VistaPreviaTicket from './VistaPreviaTicket';
 
 interface Cliente {
   id: string;
@@ -22,6 +24,8 @@ export default function BuscadorCliente({ onSeleccionar }: BuscadorClienteProps)
   const [nuevoTipo, setNuevoTipo] = useState<'empresa' | 'personal_nunu' | 'otro'>('otro');
   const [nuevoTipoCedula, setNuevoTipoCedula] = useState<'fisica' | 'juridica' | 'dimex'>('fisica');
   const [error, setError] = useState<string | null>(null);
+  const [clientePendienteImprimir, setClientePendienteImprimir] = useState<string | null>(null);
+  const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
 
   async function buscar(texto: string) {
     setConsulta(texto);
@@ -61,14 +65,24 @@ export default function BuscadorCliente({ onSeleccionar }: BuscadorClienteProps)
       return;
     }
 
-    fetch('/api/tickets/apertura-cuenta', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clienteId: cuerpo.cliente.id }),
-    }).catch(() => {}); // la apertura ya quedó guardada aunque falle el tiquete
-
+    // El tiquete de apertura (con firma) es para el cliente — no todos lo piden (§3.10).
+    setClientePendienteImprimir(cuerpo.cliente.id);
     onSeleccionar(cuerpo.cliente);
     setMostrarFormularioNuevo(false);
+  }
+
+  async function imprimirAperturaCuenta() {
+    if (!clientePendienteImprimir) return;
+    const clienteId = clientePendienteImprimir;
+    setClientePendienteImprimir(null);
+
+    const respuesta = await fetch('/api/tickets/apertura-cuenta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clienteId }),
+    });
+    const emision = await respuesta.json();
+    if (emision.html) setVistaPrevia(emision.html);
   }
 
   if (mostrarFormularioNuevo) {
@@ -154,6 +168,15 @@ export default function BuscadorCliente({ onSeleccionar }: BuscadorClienteProps)
       >
         + Nuevo cliente
       </button>
+
+      {clientePendienteImprimir && (
+        <ConfirmarImpresion
+          mensaje="Ficha de apertura de cuenta (con firma)"
+          onImprimir={imprimirAperturaCuenta}
+          onSaltar={() => setClientePendienteImprimir(null)}
+        />
+      )}
+      {vistaPrevia && <VistaPreviaTicket html={vistaPrevia} onCerrar={() => setVistaPrevia(null)} />}
     </div>
   );
 }
