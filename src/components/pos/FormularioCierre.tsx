@@ -181,10 +181,18 @@ export default function FormularioCierre() {
 
       {error && <p class="text-[var(--principal-color)]">{error}</p>}
       {resultado && (
-        <p class="font-bold">
-          Diferencia: {formatoCRC(resultado.diferenciaEfectivo)}{' '}
-          {resultado.diferenciaEfectivo !== 0 ? '⚠' : '✓'}
-        </p>
+        <div class="flex flex-col gap-2">
+          <p class="font-bold">
+            Diferencia: {formatoCRC(resultado.diferenciaEfectivo)}{' '}
+            {resultado.diferenciaEfectivo !== 0 ? '⚠' : '✓'}
+          </p>
+          <a
+            href={`/api/caja/reporte-pdf?sesionCajaId=${sesionId}`}
+            class="boton-pos inline-block rounded-lg bg-[var(--accent_color)] px-6 text-center font-bold"
+          >
+            Descargar PDF del cierre (con productos vendidos)
+          </a>
+        </div>
       )}
 
       {!resultado && (
