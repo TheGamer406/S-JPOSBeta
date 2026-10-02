@@ -1,0 +1,17 @@
+---
+import '@/styles/global.css';
+import TecladoPin from '@/components/pos/TecladoPin';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>S&J POS — Iniciar sesión</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body class="flex min-h-screen flex-col items-center justify-center gap-8">
+    <h1 class="marca text-4xl">S&J Parrilladas y Catering</h1>
+    <p class="text-[var(--text_color_2)]">Ingresa tu PIN para abrir la caja</p>
+    <TecladoPin client:load />
+  </body>
+</html>

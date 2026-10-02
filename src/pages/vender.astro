@@ -1,0 +1,30 @@
+---
+import '@/styles/global.css';
+import { eq } from 'drizzle-orm';
+import { db } from '@/db/client';
+import { usuarios } from '@/db/schema';
+
+const idUsuario = Astro.cookies.get('sj_pos_usuario')?.value;
+if (!idUsuario) return Astro.redirect('/');
+
+const [usuario] = await db.select().from(usuarios).where(eq(usuarios.id, idUsuario));
+if (!usuario) return Astro.redirect('/');
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>S&J POS — Vender</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body class="flex min-h-screen flex-col items-center justify-center gap-4">
+    <h1 class="marca text-3xl">Hola, {usuario.nombre}</h1>
+    <p class="text-[var(--text_color_2)]">
+      Sesión iniciada como <strong>{usuario.rol}</strong>.
+    </p>
+    <p class="text-[var(--text_color_2)]">
+      La pantalla de venta (cuadrícula + carrito + cobro) es parte de la Fase 1 —
+      todavía no está construida (ver <code>docs/fases/fase-1-mvp.md</code>).
+    </p>
+  </body>
+</html>

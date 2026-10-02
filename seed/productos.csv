@@ -1,0 +1,16 @@
+categoria,nombre,precio,orden
+Platos fuertes,Arroz con pollo,4100,1
+Platos fuertes,Casado con bisteck,4100,2
+Platos fuertes,Casado con carne en salsa,4100,3
+Platos fuertes,Casado con fajitas mixtas,4100,4
+Platos fuertes,Casado con pechuga de pollo,4100,5
+Platos fuertes,Chifrijo,4100,6
+Comidas rápidas,Perro caliente,2750,1
+Comidas rápidas,Hamburguesa con papas,3500,2
+Comidas rápidas,Tamal de cerdo,2000,3
+Comidas rápidas,Burritos con papas,3250,4
+Café/Repostería,Queque seco,1200,1
+Café/Repostería,Café negro,1000,2
+Café/Repostería,Café con leche,1200,3
+Bebidas,Refresco,1500,1
+Bebidas,Agua,1000,2
