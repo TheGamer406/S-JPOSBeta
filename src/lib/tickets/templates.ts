@@ -32,18 +32,26 @@ const NOMBRE_MEDIO_PAGO: Record<MedioPago, string> = {
   cuenta: 'A cuenta',
 };
 
-/** Tiquete de venta (§3.10): sale al cobrar, con lo que pagó y el vuelto. */
+export interface PagoVenta {
+  metodo: MedioPago;
+  monto: number;
+  recibido?: number; // solo efectivo
+  vuelto?: number; // efectivo o efectivo_usd
+  montoUsd?: number; // solo efectivo_usd
+  tipoCambio?: number; // solo efectivo_usd
+}
+
+/**
+ * Tiquete de venta (§3.10): sale al cobrar, con lo que pagó y el vuelto. Acepta
+ * varios pagos porque una venta se puede cobrar dividida entre varios medios.
+ */
 export function ticketVenta(datos: {
   numeroOrden: number;
   fechaHora: string;
   cajero: string;
   items: ItemVenta[];
   total: number;
-  medioPago: MedioPago;
-  recibido?: number;
-  vuelto?: number;
-  montoUsd?: number;
-  tipoCambio?: number;
+  pagos: PagoVenta[];
 }): Ticket {
   return {
     titulo: `Venta #${datos.numeroOrden}`,
@@ -60,22 +68,27 @@ export function ticketVenta(datos: {
       ]),
       { tipo: 'separador' },
       { tipo: 'texto', texto: `TOTAL: ${formatoCRC(datos.total)}`, negrita: true, grande: true },
-      { tipo: 'texto', texto: `Pago: ${NOMBRE_MEDIO_PAGO[datos.medioPago]}` },
-      ...(datos.medioPago === 'efectivo' && datos.recibido !== undefined
-        ? [
-            { tipo: 'texto', texto: `Recibido: ${formatoCRC(datos.recibido)}` } as const,
-            { tipo: 'texto', texto: `Vuelto: ${formatoCRC(datos.vuelto ?? 0)}`, negrita: true } as const,
-          ]
-        : []),
-      ...(datos.medioPago === 'efectivo_usd' && datos.montoUsd !== undefined
-        ? [
-            {
-              tipo: 'texto',
-              texto: `Recibido: ${formatoUSD(datos.montoUsd)} (TC ₡${datos.tipoCambio})`,
-            } as const,
-            { tipo: 'texto', texto: `Vuelto: ${formatoCRC(datos.vuelto ?? 0)}`, negrita: true } as const,
-          ]
-        : []),
+      ...datos.pagos.flatMap((pago): LineaItem[] => [
+        {
+          tipo: 'texto',
+          texto: `${NOMBRE_MEDIO_PAGO[pago.metodo]}: ${formatoCRC(pago.monto)}`,
+        },
+        ...(pago.metodo === 'efectivo' && pago.recibido !== undefined
+          ? [
+              { tipo: 'texto', texto: `  Recibido: ${formatoCRC(pago.recibido)}` } as const,
+              { tipo: 'texto', texto: `  Vuelto: ${formatoCRC(pago.vuelto ?? 0)}`, negrita: true } as const,
+            ]
+          : []),
+        ...(pago.metodo === 'efectivo_usd' && pago.montoUsd !== undefined
+          ? [
+              {
+                tipo: 'texto',
+                texto: `  Recibido: ${formatoUSD(pago.montoUsd)} (TC ₡${pago.tipoCambio})`,
+              } as const,
+              { tipo: 'texto', texto: `  Vuelto: ${formatoCRC(pago.vuelto ?? 0)}`, negrita: true } as const,
+            ]
+          : []),
+      ]),
       ...PIE_LEGAL,
     ],
   };

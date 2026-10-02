@@ -15,9 +15,7 @@ const venta = ticketVenta({
     { nombre: 'Refresco', cantidad: 2, subtotal: 3000, nota: 'sin hielo' },
   ],
   total: 11200,
-  medioPago: 'efectivo',
-  recibido: 20000,
-  vuelto: 8800,
+  pagos: [{ metodo: 'efectivo', monto: 11200, recibido: 20000, vuelto: 8800 }],
 });
 
 const apertura = ticketAperturaCuenta({
