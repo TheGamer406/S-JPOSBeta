@@ -52,6 +52,7 @@ export const esquemaCrearCliente = z.object({
   organizacion: z.string().optional(),
   contactoEncargado: z.string().optional(),
   limiteCredito: z.number().int().nonnegative().optional(),
+  modoPagoDefault: z.enum(['cuenta', 'contra_entrega']).default('cuenta'),
   notas: z.string().optional(),
 });
 
@@ -79,4 +80,32 @@ export const esquemaAnularVenta = z.object({
   ventaId: z.string().uuid(),
   motivo: z.string().min(3),
   pinAdmin: z.string().min(4).max(6),
+});
+
+export const esquemaCrearProgramado = z.object({
+  clienteId: z.string().uuid(),
+  nombreReferencia: z.string().optional(), // encargado
+  fechaProgramada: z.string().min(1), // 'YYYY-MM-DD'
+  tiempoComida: z.enum(['almuerzo', 'cafe', 'cena']),
+  items: z.array(esquemaItemVenta).min(1),
+});
+
+export const esquemaEntregaItem = z.object({
+  ventaItemId: z.string().uuid(),
+  cantidadEntregada: z.number().int().nonnegative(),
+});
+
+// Pago de la entrega cuando el cliente paga contra entrega (no a cuenta): el
+// monto lo calcula el servidor a partir de lo entregado, nunca el cliente.
+export const esquemaPagoEntrega = z.object({
+  metodo: z.enum(['efectivo', 'efectivo_usd', 'sinpe', 'datafono_bac', 'datafono_bn']),
+  recibido: z.number().int().positive().optional(),
+  montoUsd: z.number().int().positive().optional(),
+  referencia: z.string().optional(),
+});
+
+export const esquemaEntregarProgramado = z.object({
+  ventaId: z.string().uuid(),
+  entregas: z.array(esquemaEntregaItem).min(1),
+  pago: esquemaPagoEntrega.optional(),
 });

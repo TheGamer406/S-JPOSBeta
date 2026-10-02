@@ -83,6 +83,7 @@ export async function crearCliente(entrada: z.infer<typeof esquemaCrearCliente>)
       organizacion: entrada.organizacion,
       contactoEncargado: entrada.contactoEncargado,
       limiteCredito: entrada.limiteCredito,
+      modoPagoDefault: entrada.modoPagoDefault,
       notas: entrada.notas,
     })
     .run();

@@ -55,7 +55,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const movimientoCargo = pagosVenta.find((pago) => pago.metodo === 'cuenta');
     const saldoActual = cliente ? saldoActualCliente(cliente.id) : 0;
     ticket = ticketCargoCuenta({
-      numeroOrden: venta.numeroOrdenDia,
+      numeroOrden: venta.numeroOrdenDia ?? 0,
       fechaHora: venta.creadoEn,
       cajero: cajero?.nombre ?? '—',
       items: itemsTicket,
@@ -67,7 +67,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
   } else {
     ticket = ticketVenta({
-      numeroOrden: venta.numeroOrdenDia,
+      numeroOrden: venta.numeroOrdenDia ?? 0,
       fechaHora: venta.creadoEn,
       cajero: cajero?.nombre ?? '—',
       items: itemsTicket,
