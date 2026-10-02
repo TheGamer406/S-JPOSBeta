@@ -25,6 +25,7 @@ export default function PantallaVenta() {
   const [nombreReferencia, setNombreReferencia] = useState('');
   const [tipoCambioUsd, setTipoCambioUsd] = useState(500);
   const [mostrarCobro, setMostrarCobro] = useState(false);
+  const [imprimirComanda, setImprimirComanda] = useState(true);
   const [vistaPrevia, setVistaPrevia] = useState<{ html: string; aviso?: string } | null>(null);
 
   useEffect(() => {
@@ -81,6 +82,14 @@ export default function PantallaVenta() {
     setMostrarCobro(false);
     setCarrito([]);
     setNombreReferencia('');
+
+    if (imprimirComanda) {
+      fetch('/api/tickets/comanda', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ventaId }),
+      }).catch(() => {}); // la comanda es de cocina, no debe bloquear el tiquete de venta
+    }
 
     const respuesta = await fetch('/api/tickets/venta', {
       method: 'POST',
@@ -181,6 +190,15 @@ export default function PantallaVenta() {
         </ul>
 
         <p class="monto text-right text-3xl font-bold text-[var(--gold)]">{formatoCRC(total)}</p>
+
+        <label class="flex items-center gap-2 text-sm text-[var(--text_color_2)]">
+          <input
+            type="checkbox"
+            checked={imprimirComanda}
+            onChange={(e) => setImprimirComanda((e.target as HTMLInputElement).checked)}
+          />
+          Imprimir comanda de cocina
+        </label>
 
         <button
           type="button"
