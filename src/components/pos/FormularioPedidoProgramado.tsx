@@ -183,7 +183,7 @@ export default function FormularioPedidoProgramado() {
         <textarea
           value={csv}
           onInput={(e) => setCsv((e.target as HTMLTextAreaElement).value)}
-          placeholder={'empresa,encargado,Perro caliente,Arroz con pollo\nVindi,Marco,10,0\nPMI,Ana,0,5'}
+          placeholder={'empresa,encargado,Perro caliente,Arroz con pollo\nEmpresa 1,Encargado,10,0\nEmpresa 2,Encargado,0,5'}
           rows={10}
           class="rounded bg-[var(--background_color_2)] px-3 py-2 font-mono text-sm"
         />

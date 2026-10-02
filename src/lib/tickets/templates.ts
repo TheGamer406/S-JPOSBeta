@@ -118,7 +118,7 @@ export function ticketAperturaCuenta(datos: {
   numeroCuenta: string;
   nombre: string;
   cedula: string;
-  tipo: string; // ej. "Empresa (Vindi)" o "Personal NUNU"
+  tipo: string; // ej. "Empresa (Nombre S.A.)" o "Personal NUNU"
   fechaHora: string;
   abrioUsuario: string;
 }): Ticket {
