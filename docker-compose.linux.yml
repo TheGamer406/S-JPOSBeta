@@ -1,0 +1,13 @@
+# Override para Linux (este equipo): la impresora AON se pasa directo como dispositivo.
+# La AON aparece como /dev/usb/lp0 al conectarla. El GID del grupo "lp" del host se
+# pasa con group_add para que el proceso del contenedor pueda escribir el dispositivo.
+# iniciar-pos.sh calcula SJ_POS_LP_GID automáticamente (getent group lp).
+
+services:
+  pos:
+    environment:
+      SJ_POS_IMPRESORA_INTERFAZ: "${SJ_POS_IMPRESORA_INTERFAZ:-/dev/usb/lp0}"
+    devices:
+      - "/dev/usb/lp0:/dev/usb/lp0"
+    group_add:
+      - "${SJ_POS_LP_GID:-989}"

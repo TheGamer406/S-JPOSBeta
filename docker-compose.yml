@@ -1,0 +1,24 @@
+# Base del POS en Docker (Fase 5), igual en Linux y Windows.
+# El detalle de la impresora cambia por sistema operativo, así que va en los
+# archivos de override:
+#   Linux (este equipo): docker compose -f docker-compose.yml -f docker-compose.linux.yml up
+#   Windows 11:          docker compose -f docker-compose.yml -f docker-compose.windows.yml up
+# Los scripts iniciar-pos.sh / INICIAR-POS.bat ya eligen el override correcto.
+
+services:
+  pos:
+    build: .
+    image: sj-pos:latest
+    container_name: sj-pos
+    restart: unless-stopped
+    ports:
+      - "4321:4321"
+    environment:
+      # Cambiar el PIN del Admin inicial antes del primer evento (o desde Usuarios).
+      SJ_POS_ADMIN_PIN: "${SJ_POS_ADMIN_PIN:-0000}"
+      SJ_POS_IMPRESORA_ANCHO: "${SJ_POS_IMPRESORA_ANCHO:-80}"
+      SJ_POS_IMPRESORA_GAVETA: "${SJ_POS_IMPRESORA_GAVETA:-false}"
+    volumes:
+      # La base y los respaldos quedan en ./datos del host (gitignored): sobreviven
+      # a "docker compose down" y se pueden copiar/respaldar a mano si hace falta.
+      - ./datos:/datos

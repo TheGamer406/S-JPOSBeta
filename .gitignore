@@ -9,6 +9,9 @@ dist/
 *.db-shm
 respaldos/
 
+# Volumen de datos del contenedor Docker (base + respaldos del host)
+datos/
+
 # Electron
 out/
 release/

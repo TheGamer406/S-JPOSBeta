@@ -1,0 +1,18 @@
+# Lo que no debe entrar al contexto de build de Docker.
+node_modules
+dist
+.astro
+release
+dist-electron
+out
+datos
+*.db
+*.db-wal
+*.db-shm
+respaldos
+*.log
+.git
+.github
+docs/Pedidos_Fin_de_Semana.pdf
+docs/Comidas_Para_Imprimir.docx
+scripts/importar-pedidos-reales.ts

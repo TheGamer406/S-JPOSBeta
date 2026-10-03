@@ -1,0 +1,13 @@
+# Override para Windows 11: el contenedor es Linux y no puede tocar el USB de Windows
+# directo. Imprime por red al puente que corre en el host (scripts/print-bridge),
+# que reenvía los bytes ESC/POS a la AON compartida. Ver fase-5-docker.md.
+#
+# host.docker.internal resuelve al host desde el contenedor. En Docker Desktop viene
+# por defecto; extra_hosts lo deja explícito por si acaso.
+
+services:
+  pos:
+    environment:
+      SJ_POS_IMPRESORA_INTERFAZ: "${SJ_POS_IMPRESORA_INTERFAZ:-tcp://host.docker.internal:9100}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
