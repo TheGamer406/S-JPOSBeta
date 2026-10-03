@@ -43,6 +43,15 @@
 - [x] Migración + seed al primer arranque, idempotente (`scripts/docker-entrypoint.sh`:
       `tsx src/db/migrate.ts` siempre; seed solo si no hay usuarios). Verificado:
       primer arranque siembra 4 categorías + 15 productos + Admin; reinicio NO re-siembra.
+- [x] **Bug encontrado por click-through (Ronda 2) y corregido:** el `Dockerfile` no
+      copiaba `assets/` (fuentes `NotoSans-*.ttf` que usan los PDFs de cierre y
+      despacho para el glyph ₡) — los dos PDFs crasheaban 500 en el contenedor.
+      Agregado `COPY --from=build /app/assets ./assets`. Además, `pdfDespacho.ts`
+      tenía un bug de origen (no específico de Docker): calculaba la ruta de la fuente
+      con `../../../` relativo a su propio archivo, y Astro lo empaqueta a una
+      profundidad distinta que `pdfCierre.ts` en cualquier build de producción —
+      corregido centralizando la ruta en `src/lib/pos/fuentesPdf.ts`, resuelta desde
+      `process.cwd()`. Ambos PDFs verificados: `200 application/pdf` con contenido real.
 - [x] Usuario Admin inicial con PIN cambiable (`SJ_POS_ADMIN_PIN`). Verificado por curl:
       PIN correcto → 200, PIN incorrecto → 401.
 

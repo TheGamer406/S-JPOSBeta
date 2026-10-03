@@ -51,8 +51,13 @@ se propagó a `reporteCierre.ts`, `pdfCierre.ts`, `ticketCierre` y la UI de cier
 
 ## Pendiente / fuera de esta pasada
 
-- [ ] Click-through manual en navegador real de `/cuentas` y `/caja/movimientos`
-      (se probó todo por API con curl, igual que en Fase 1).
+- [x] **Click-through real en navegador (Ronda 2, 2026-10-03).** `/cuentas`: búsqueda
+      de cliente, estado de cuenta, registrar abono en efectivo exacto, saldo
+      actualizado, imprimir estado de cuenta (vista previa), antigüedad de saldos.
+      `/caja/movimientos`: registrar salida (hielo) y que aparezca en la lista. Sin
+      errores de JS. Corregido de paso: `PantallaCuentas.tsx` mostraba la fecha del
+      movimiento en UTC crudo (confuso para el cajero, ej. "02:49" cuando en Costa
+      Rica eran las "20:49" del día anterior) — ahora usa `formatoFechaHora` (Fase 1).
 - [ ] La antigüedad de saldos usa el cargo más antiguo, no un FIFO exacto que vaya
       descontando abonos cargo por cargo — suficiente para el MVP, revisar si algún
       día se necesita precisión contable real.

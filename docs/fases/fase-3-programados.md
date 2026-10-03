@@ -50,11 +50,23 @@ propia pantalla en vez de un filtro dentro de la misma.
 
 ## Pendiente / fuera de esta pasada
 
-- [ ] Click-through manual en navegador de `/programados` y `/programados/nuevo`
-      (se probó todo por API con curl, igual que en fases anteriores).
+- [x] **Click-through real en navegador (Ronda 2, 2026-10-03).** `/programados/nuevo`:
+      alta manual (9 de un producto, 5 de otro, cliente elegido con `BuscadorCliente`),
+      importación CSV (fila con cliente inexistente → error claro sin tumbar el resto;
+      fila con cliente real → pedido creado). `/programados`: cola del día, "Gestionar"
+      → sacar todo lo pendiente → cobrar en efectivo exacto → despacho confirmado. Sin
+      errores de JS. Bug real encontrado y corregido: **la hoja de despacho en PDF
+      crasheaba 500 en cualquier build de producción** (no solo Docker) — `pdfDespacho.ts`
+      calculaba la ruta de la fuente con `../../../` relativo a su propio archivo, y
+      Astro empaqueta ese módulo a una profundidad distinta que `pdfCierre.ts` en
+      producción, así que el cálculo apuntaba a `dist/server/assets/...` en vez de
+      `assets/...`. `npm run dev` nunca lo mostraba porque ahí no hay bundling.
+      Corregido centralizando la resolución en `src/lib/pos/fuentesPdf.ts`, relativa a
+      `process.cwd()` en vez de `import.meta.url`.
 - [ ] El modo `contra_entrega` no tiene los atajos de efectivo/billetes $ de
       `ModalAbono`/`ModalCobro` — son inputs sueltos. Se puede alinear más adelante
       si se usa seguido.
+- [ ] El despacho de un programado no emite ningún comprobante — ver Fase 6/7.
 
 ## Decisión que afecta esta fase
 

@@ -96,12 +96,25 @@
 ### Pendiente / fuera de esta pasada
 - [ ] Selector de evento en la apertura de caja (el campo existe, falta la pantalla).
 - [ ] Botón para marcar un SINPE como verificado desde la pantalla de cierre.
-- [ ] PDF completo del cierre (hoy solo hay tiquete/preview).
 - [x] Mostrar en el modal de cobro el aviso de "pasa el límite de crédito" —
       resuelto en Fase 2 (`ModalCobro.tsx` → `PantallaVenta.tsx`).
-- [ ] Probar en un navegador real con clicks (esta pasada se probó el backend completo
-      por API con curl y se revisó el código de los componentes; falta un click-through
-      manual en Electron/navegador antes de usar esto en un evento real — ver §11).
+- [x] **Click-through real en navegador (Ronda 2, 2026-10-03).** Probado con Playwright
+      contra la imagen Docker (equivalente a producción, no `npm run dev`): login PIN,
+      abrir caja, cuadrícula + carrito + nota por línea, marcar/desmarcar agotado, cobro
+      en efectivo exacto, pago dividido (efectivo + SINPE), venta a cuenta creando
+      cliente al vuelo, cola de pedidos (pendiente→preparación→listo→entregado),
+      anulación con PIN incorrecto (rechazada) y correcto (aceptada), cierre de caja con
+      conteo por denominación, diferencia ₡0, descarga de PDF y respaldo automático.
+      Sin errores de JS en consola. Dos bugs reales encontrados y corregidos (solo
+      visibles en navegador/producción, no por curl):
+      - **Minutos "tardío" negativos**: `CURRENT_TIMESTAMP` de SQLite no lleva zona
+        horaria; el navegador lo interpretaba como hora local y en Costa Rica (UTC-6)
+        los pedidos mostraban "-357 min" — la alerta de pedido tardío (§3.4) nunca
+        hubiera disparado en un evento real. Corregido con `src/lib/fecha.ts`
+        (`epochDeFechaSqlite`), usado en `ColaPedidos.tsx` y `VistaCocina.tsx`.
+      - **PDF del cierre crasheaba 500 en el build de producción**: la fuente
+        `assets/fonts/NotoSans-Regular.ttf` no se copiaba al contenedor Docker — ver
+        Fase 5. Corregido agregando `assets/` al `Dockerfile`.
 
 ## Ya construido en Fase 0 que esta fase reutiliza
 

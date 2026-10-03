@@ -39,16 +39,18 @@
 
 ## Ronda 2 (ajustes nuevos)
 
-- [ ] **"Cocina" en el header para admin (y cocinero).** Hoy `BarraNav.astro` solo le
-      muestra el link "Cocina" al rol `cocina`; admin y cajero no lo tienen. Agregar el
-      link `/cocina` a la barra de admin (el cocinero ya lo tiene). Decidir si el cajero
-      también lo ve — el plan §2 dice que cocina no ve dinero, pero admin/cajero sí
-      pueden querer ojear la cola. Cambio de ~1 línea en `src/components/pos/BarraNav.astro`.
+- [x] **"Cocina" en el header para admin.** `BarraNav.astro` ya le mostraba el link al
+      rol `cocina`; ahora también aparece para `admin` (junto a Reportes/Auditoría/
+      Usuarios, en dorado). Cajero no lo tiene — el plan §2 reserva "ver la cola sin
+      dinero" para cocina, y admin es quien necesita supervisar ambos lados.
+- [x] **Click-through real en navegador (Ronda 2, 2026-10-03).** `/cocina` carga para
+      admin con el link nuevo. `/admin/reportes` carga y la descarga a Excel responde
+      200 con el content-type correcto (`.xlsx`). `/admin/auditoria` lista el registro
+      de la anulación hecha en Fase 1 con fecha ya corregida a hora local (ver Fase 1).
+      `/admin/usuarios`: crear usuario, cambiar PIN (prompt del navegador), desactivar
+      y reactivar — probado de punta a punta. Sin errores de JS.
 
 ## Pendiente / fuera de esta pasada
-
-- [ ] Click-through manual en navegador de `/cocina`, `/admin/reportes` y
-      `/admin/auditoria` (se probó todo por API/redirects con curl).
 - [ ] El filtro de reportes por evento funciona (`eventoId`), pero no hay pantalla
       para crear/editar eventos — solo se puede asociar uno al abrir caja si ya
       existe un registro en la tabla `eventos` (no construida en ninguna fase).
