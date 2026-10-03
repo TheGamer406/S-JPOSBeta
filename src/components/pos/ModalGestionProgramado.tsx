@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
-import { formatoCRC, calcularVueltoCrc, calcularVueltoUsd } from '@/lib/dinero';
+import { formatoCRC } from '@/lib/dinero';
+import SelectorPago, { type PagoAgregado, type Metodo } from './SelectorPago';
 import ConfirmarImpresion from './ConfirmarImpresion';
 import VistaPreviaTicket from './VistaPreviaTicket';
 
@@ -21,6 +22,8 @@ export interface ProductoCatalogo {
 
 interface Props {
   programadoId: string;
+  clienteId: string;
+  numeroCuenta: string;
   nombreCliente: string;
   encargado: string | null;
   items: ItemPlan[];
@@ -30,25 +33,7 @@ interface Props {
   onCerrar: () => void;
 }
 
-type Metodo = 'efectivo' | 'efectivo_usd' | 'sinpe' | 'datafono_bac' | 'datafono_bn' | 'cuenta';
-
-const NOMBRE_METODO: Record<Metodo, string> = {
-  efectivo: 'Efectivo ₡',
-  efectivo_usd: 'Efectivo $',
-  sinpe: 'SINPE Móvil',
-  datafono_bac: 'Datáfono BAC',
-  datafono_bn: 'Datáfono BN',
-  cuenta: 'A cuenta',
-};
-
-const COLOR_METODO: Record<Metodo, string> = {
-  efectivo: 'var(--pago-efectivo-crc)',
-  efectivo_usd: 'var(--pago-efectivo-usd)',
-  sinpe: 'var(--pago-sinpe)',
-  datafono_bac: 'var(--pago-bac)',
-  datafono_bn: 'var(--pago-bn)',
-  cuenta: 'var(--pago-cuenta)',
-};
+const METODOS: Metodo[] = ['efectivo', 'efectivo_usd', 'sinpe', 'datafono_bac', 'datafono_bn', 'cuenta'];
 
 interface Adicional {
   productoId: string;
@@ -59,11 +44,15 @@ interface Adicional {
 
 /**
  * Gestionar un pedido programado (§3.5): se saca una parte del plan — por
- * ejemplo 5 de los 9 arroces y la bebida — y eso se cobra como una venta normal.
- * Lo que no se saca queda pendiente para un despacho posterior.
+ * ejemplo 5 de los 9 arroces y la bebida — y eso se cobra igual que una venta
+ * normal, con el mismo `SelectorPago` compartido (métodos, atajos, pago
+ * dividido y a cuenta — §7). Lo que no se saca queda pendiente para un
+ * despacho posterior.
  */
 export default function ModalGestionProgramado({
   programadoId,
+  clienteId,
+  numeroCuenta,
   nombreCliente,
   encargado,
   items,
@@ -76,13 +65,10 @@ export default function ModalGestionProgramado({
   const [sacar, setSacar] = useState<Record<string, string>>({});
   const [adicionales, setAdicionales] = useState<Adicional[]>([]);
   const [productoAgregar, setProductoAgregar] = useState('');
-  const [metodo, setMetodo] = useState<Metodo | null>(null);
-  const [recibidoTexto, setRecibidoTexto] = useState('');
-  const [montoUsdTexto, setMontoUsdTexto] = useState('');
-  const [referencia, setReferencia] = useState('');
+  const [pagos, setPagos] = useState<PagoAgregado[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [pendienteImprimir, setPendienteImprimir] = useState<string | null>(null);
+  const [pendienteImprimir, setPendienteImprimir] = useState<{ ventaId: string; avisoLimite?: string } | null>(null);
   const [vistaPrevia, setVistaPrevia] = useState<{ html: string; aviso?: string } | null>(null);
 
   const pendientes = items.filter((item) => item.cantidad - item.cantidadEntregada > 0);
@@ -94,23 +80,17 @@ export default function ModalGestionProgramado({
   const totalAdicionales = adicionales.reduce((suma, a) => suma + a.precio * a.cantidad, 0);
   const total = totalSacado + totalAdicionales;
 
-  const recibidoNumero = Number(recibidoTexto) || 0;
-  const montoUsdNumero = Number(montoUsdTexto) || 0;
-
-  let vuelto: number | null = null;
-  if (metodo === 'efectivo' && total > 0 && recibidoNumero >= total) {
-    vuelto = calcularVueltoCrc(total, recibidoNumero);
-  }
-  if (metodo === 'efectivo_usd' && total > 0 && montoUsdNumero > 0) {
-    if (montoUsdNumero * tipoCambioUsd >= total) vuelto = calcularVueltoUsd(total, montoUsdNumero, tipoCambioUsd);
-  }
+  const pagado = pagos.reduce((suma, pago) => suma + pago.monto, 0);
+  const faltante = total - pagado;
 
   function cambiarSacar(itemId: string, valor: string) {
     setSacar((actual) => ({ ...actual, [itemId]: valor }));
+    setPagos([]); // cambiar lo que se saca invalida los pagos ya armados
   }
 
   function sacarTodo() {
     setSacar(Object.fromEntries(pendientes.map((item) => [item.id, String(item.cantidad - item.cantidadEntregada)])));
+    setPagos([]);
   }
 
   function agregarAdicional() {
@@ -124,6 +104,7 @@ export default function ModalGestionProgramado({
       return [...actual, { productoId: producto.id, nombre: producto.nombre, precio: producto.precio, cantidad: 1 }];
     });
     setProductoAgregar('');
+    setPagos([]);
   }
 
   function cambiarCantidadAdicional(productoId: string, delta: number) {
@@ -132,10 +113,11 @@ export default function ModalGestionProgramado({
         .map((a) => (a.productoId === productoId ? { ...a, cantidad: a.cantidad + delta } : a))
         .filter((a) => a.cantidad > 0),
     );
+    setPagos([]);
   }
 
   async function despachar() {
-    if (total <= 0 || !metodo || enviando) return;
+    if (total <= 0 || faltante !== 0 || enviando) return;
     setEnviando(true);
     setError(null);
 
@@ -150,12 +132,13 @@ export default function ModalGestionProgramado({
         programadoId,
         lineas,
         adicionales: adicionales.map((a) => ({ productoId: a.productoId, cantidad: a.cantidad })),
-        pago: {
-          metodo,
-          recibido: metodo === 'efectivo' ? recibidoNumero || undefined : undefined,
-          montoUsd: metodo === 'efectivo_usd' ? montoUsdNumero || undefined : undefined,
-          referencia: referencia || undefined,
-        },
+        pagos: pagos.map((pago) => ({
+          metodo: pago.metodo,
+          monto: pago.monto,
+          recibido: pago.recibido,
+          montoUsd: pago.montoUsd,
+          referencia: pago.referencia,
+        })),
         idempotencyKey,
       }),
     });
@@ -167,15 +150,19 @@ export default function ModalGestionProgramado({
       return;
     }
 
+    const avisoLimite = cuerpo.saldoCliente?.pasaLimite
+      ? `Esta cuenta pasó su límite de crédito (saldo nuevo: ${formatoCRC(cuerpo.saldoCliente.saldoNuevo)})`
+      : undefined;
+
     // El tiquete es para el cliente — se pregunta, igual que en una venta de
     // mostrador (§3.10). onListo() se llama al cerrar este paso, no antes, para
     // no refrescar la cola de programados mientras el tiquete sigue en pantalla.
-    setPendienteImprimir(cuerpo.venta.id);
+    setPendienteImprimir({ ventaId: cuerpo.venta.id, avisoLimite });
   }
 
   async function imprimirTicketDespacho() {
     if (!pendienteImprimir) return;
-    const ventaId = pendienteImprimir;
+    const { ventaId, avisoLimite } = pendienteImprimir;
     setPendienteImprimir(null);
 
     const respuesta = await fetch('/api/tickets/venta', {
@@ -184,16 +171,21 @@ export default function ModalGestionProgramado({
       body: JSON.stringify({ ventaId }),
     });
     const emision = await respuesta.json();
+    const aviso = [avisoLimite, emision.error].filter(Boolean).join(' - ');
     if (emision.html) {
-      setVistaPrevia({ html: emision.html, aviso: emision.error });
+      setVistaPrevia({ html: emision.html, aviso: aviso || undefined });
+    } else if (avisoLimite) {
+      setVistaPrevia({ html: '', aviso: avisoLimite });
     } else {
       onListo();
     }
   }
 
   function saltarTicketDespacho() {
+    const avisoLimite = pendienteImprimir?.avisoLimite;
     setPendienteImprimir(null);
-    onListo();
+    if (avisoLimite) setVistaPrevia({ html: '', aviso: avisoLimite });
+    else onListo();
   }
 
   return (
@@ -297,85 +289,14 @@ export default function ModalGestionProgramado({
         <p class="monto text-right text-3xl font-bold text-[var(--gold)]">{formatoCRC(total)}</p>
 
         {total > 0 && (
-          <div class="flex flex-col gap-2 rounded bg-[var(--background_color_2)] p-3">
-            {!metodo && (
-              <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {(Object.keys(NOMBRE_METODO) as Metodo[]).map((opcion) => (
-                  <button
-                    key={opcion}
-                    type="button"
-                    onClick={() => setMetodo(opcion)}
-                    style={{ backgroundColor: COLOR_METODO[opcion] }}
-                    class="boton-pos rounded-lg font-bold text-black"
-                  >
-                    {NOMBRE_METODO[opcion]}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {metodo === 'efectivo' && (
-              <div class="flex flex-col gap-2">
-                <div class="grid grid-cols-3 gap-2">
-                  <button type="button" onClick={() => setRecibidoTexto(String(total))} class="boton-pos rounded bg-[var(--pago-efectivo-crc)] text-black">
-                    Exacto
-                  </button>
-                  <button type="button" onClick={() => setRecibidoTexto(String(recibidoNumero + 10000))} class="boton-pos rounded bg-[var(--pago-efectivo-crc)] text-black">
-                    +₡10 000
-                  </button>
-                  <button type="button" onClick={() => setRecibidoTexto(String(recibidoNumero + 20000))} class="boton-pos rounded bg-[var(--pago-efectivo-crc)] text-black">
-                    +₡20 000
-                  </button>
-                </div>
-                <input
-                  type="number"
-                  placeholder="Monto recibido"
-                  value={recibidoTexto}
-                  onInput={(e) => setRecibidoTexto((e.target as HTMLInputElement).value)}
-                  class="rounded bg-[var(--background_color_1)] px-3 py-2"
-                />
-                {vuelto !== null && <p class="monto text-xl font-bold text-[var(--gold)]">Vuelto: {formatoCRC(vuelto)}</p>}
-              </div>
-            )}
-
-            {metodo === 'efectivo_usd' && (
-              <div class="flex flex-col gap-2">
-                <div class="grid grid-cols-3 gap-2">
-                  {[1, 5, 10, 20, 50, 100].map((billete) => (
-                    <button
-                      key={billete}
-                      type="button"
-                      onClick={() => setMontoUsdTexto(String(montoUsdNumero + billete))}
-                      class="boton-pos rounded bg-[var(--pago-efectivo-usd)] text-black"
-                    >
-                      ${billete}
-                    </button>
-                  ))}
-                </div>
-                <p>
-                  Recibido: ${montoUsdTexto || 0} (TC ₡{tipoCambioUsd})
-                </p>
-                {vuelto !== null && <p class="monto text-xl font-bold text-[var(--gold)]">Vuelto: {formatoCRC(vuelto)}</p>}
-              </div>
-            )}
-
-            {(metodo === 'sinpe' || metodo === 'datafono_bac' || metodo === 'datafono_bn') && (
-              <input
-                placeholder={metodo === 'sinpe' ? 'N.º de comprobante' : 'N.º de autorización (opcional)'}
-                value={referencia}
-                onInput={(e) => setReferencia((e.target as HTMLInputElement).value)}
-                class="rounded bg-[var(--background_color_1)] px-3 py-2"
-              />
-            )}
-
-            {metodo === 'cuenta' && <p>Se carga {formatoCRC(total)} a la cuenta de {nombreCliente}.</p>}
-
-            {metodo && (
-              <button type="button" onClick={() => setMetodo(null)} class="text-sm text-[var(--text_color_2)]">
-                cambiar medio de pago
-              </button>
-            )}
-          </div>
+          <SelectorPago
+            key={total}
+            total={total}
+            tipoCambioUsd={tipoCambioUsd}
+            metodos={METODOS}
+            cuentaFija={{ id: clienteId, nombre: nombreCliente, numeroCuenta }}
+            onPagosCambian={setPagos}
+          />
         )}
 
         {error && <p class="text-[var(--principal-color)]">{error}</p>}
@@ -386,7 +307,7 @@ export default function ModalGestionProgramado({
           </button>
           <button
             type="button"
-            disabled={total <= 0 || !metodo || enviando}
+            disabled={total <= 0 || faltante !== 0 || enviando}
             onClick={despachar}
             class="boton-pos flex-1 rounded-lg bg-[var(--principal-color)] font-bold disabled:opacity-40"
           >

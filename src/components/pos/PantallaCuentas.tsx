@@ -38,7 +38,7 @@ export default function PantallaCuentas() {
   const [mostrarAntiguedad, setMostrarAntiguedad] = useState(false);
   const [antiguedad, setAntiguedad] = useState<AntiguedadFila[]>([]);
   const [mostrarModalAbono, setMostrarModalAbono] = useState(false);
-  const [pagoPendienteImprimir, setPagoPendienteImprimir] = useState<string | null>(null);
+  const [pagoPendienteImprimir, setPagoPendienteImprimir] = useState<string[] | null>(null);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,22 +67,22 @@ export default function PantallaCuentas() {
     setAntiguedad(cuerpo.saldos ?? []);
   }
 
-  async function alConfirmarAbono(pagoId: string) {
+  async function alConfirmarAbono(pagoIds: string[]) {
     setMostrarModalAbono(false);
     if (cliente) await cargarEstadoCuenta(cliente);
     // El tiquete de abono es para el cliente — no todos lo piden (§3.10).
-    setPagoPendienteImprimir(pagoId);
+    setPagoPendienteImprimir(pagoIds);
   }
 
   async function imprimirTicketAbono() {
     if (!pagoPendienteImprimir) return;
-    const pagoId = pagoPendienteImprimir;
+    const pagoIds = pagoPendienteImprimir;
     setPagoPendienteImprimir(null);
 
     const ticketRespuesta = await fetch('/api/tickets/abono', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pagoId }),
+      body: JSON.stringify({ pagoIds }),
     });
     const emision = await ticketRespuesta.json();
     if (emision.html) setVistaPrevia(emision.html);

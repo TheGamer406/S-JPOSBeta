@@ -11,6 +11,7 @@ interface Venta {
 }
 
 interface Cliente {
+  id: string;
   numeroCuenta: string;
   nombre: string;
 }
@@ -148,6 +149,8 @@ export default function ColaProgramados() {
       {gestionando && (
         <ModalGestionProgramado
           programadoId={gestionando.venta.id}
+          clienteId={gestionando.cliente?.id ?? ''}
+          numeroCuenta={gestionando.cliente?.numeroCuenta ?? ''}
           nombreCliente={gestionando.cliente?.nombre ?? 'Sin cliente'}
           encargado={gestionando.venta.nombreReferencia}
           items={gestionando.items}
