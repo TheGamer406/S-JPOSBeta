@@ -24,3 +24,15 @@ export function formatoFechaHora(texto: string): string {
     timeZone: 'America/Costa_Rica',
   });
 }
+
+/**
+ * "Hoy" en la fecha del negocio (America/Costa_Rica), YYYY-MM-DD — para usar
+ * como default de filtros de fecha (ej. la cola de programados). Con
+ * `new Date().toISOString()` (siempre UTC) la fecha salta al día siguiente desde
+ * las 6pm hora de Costa Rica (UTC-6): un pedido creado "para hoy" con el selector
+ * de fecha nativo (que sí sigue la hora local) dejaba de aparecer en la cola
+ * porque esta quedaba mirando el día de mañana.
+ */
+export function hoyISO(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Costa_Rica' });
+}

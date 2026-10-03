@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatoCRC } from '@/lib/dinero';
+import { hoyISO } from '@/lib/fecha';
 import ModalGestionProgramado, { type ItemPlan, type ProductoCatalogo } from './ModalGestionProgramado';
 
 interface Venta {
@@ -24,10 +25,6 @@ interface Pedido {
 }
 
 const NOMBRE_TIEMPO: Record<string, string> = { almuerzo: 'Almuerzo', cafe: 'Café', cena: 'Cena' };
-
-function hoyISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 /** Pedidos programados del día (§3.5): lista compacta, se gestionan de a uno. */
 export default function ColaProgramados() {
