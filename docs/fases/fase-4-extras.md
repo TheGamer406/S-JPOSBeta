@@ -37,6 +37,14 @@
       tablet que entre a `http://192.168.x.x:4321` pasa por la misma pantalla de
       `/`. No hizo falta una capa de acceso separada.
 
+## Ronda 2 (ajustes nuevos)
+
+- [ ] **"Cocina" en el header para admin (y cocinero).** Hoy `BarraNav.astro` solo le
+      muestra el link "Cocina" al rol `cocina`; admin y cajero no lo tienen. Agregar el
+      link `/cocina` a la barra de admin (el cocinero ya lo tiene). Decidir si el cajero
+      también lo ve — el plan §2 dice que cocina no ve dinero, pero admin/cajero sí
+      pueden querer ojear la cola. Cambio de ~1 línea en `src/components/pos/BarraNav.astro`.
+
 ## Pendiente / fuera de esta pasada
 
 - [ ] Click-through manual en navegador de `/cocina`, `/admin/reportes` y
