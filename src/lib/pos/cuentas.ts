@@ -7,8 +7,7 @@ import { saldoActualCliente } from './ventas';
 
 export class CuentaError extends Error {}
 
-export interface EntradaAbono {
-  clienteId: string;
+export interface PagoAbono {
   metodo: 'efectivo' | 'efectivo_usd' | 'sinpe' | 'datafono_bac' | 'datafono_bn';
   monto: number;
   recibido?: number; // solo efectivo
@@ -16,9 +15,16 @@ export interface EntradaAbono {
   referencia?: string;
 }
 
+export interface EntradaAbono {
+  clienteId: string;
+  pagos: PagoAbono[];
+}
+
 /**
- * Registra un abono a cuenta (§3.6): entra como pago (venta_id = null, para
- * distinguirlo de una venta) y como movimiento de tipo "abono" en el libro mayor.
+ * Registra un abono a cuenta (§3.6), que se puede pagar dividido entre varios
+ * medios igual que una venta (§7). Cada medio entra como su propio pago (venta_id
+ * = null, para distinguirlo de una venta) y su propio movimiento de tipo "abono"
+ * en el libro mayor — así el estado de cuenta muestra una línea por medio usado.
  * Al ser efectivo, suma al efectivo esperado del cierre del día en que se recibe.
  */
 export async function registrarAbono(
@@ -30,56 +36,63 @@ export async function registrarAbono(
   const [cliente] = await db.select().from(clientes).where(eq(clientes.id, entrada.clienteId));
   if (!cliente) throw new CuentaError('Cliente no encontrado');
 
-  let recibido: number | undefined;
-  let vuelto: number | undefined;
-  let montoUsd: number | undefined;
-  let tipoCambio: number | undefined;
-
-  if (entrada.metodo === 'efectivo') {
-    if (entrada.recibido === undefined) throw new CuentaError('Falta el monto recibido');
-    recibido = entrada.recibido;
-    vuelto = calcularVueltoCrc(entrada.monto, entrada.recibido);
-  }
-  if (entrada.metodo === 'efectivo_usd') {
-    if (entrada.montoUsd === undefined) throw new CuentaError('Falta el monto en dólares');
-    montoUsd = entrada.montoUsd;
-    tipoCambio = tipoCambioSesion;
-    vuelto = calcularVueltoUsd(entrada.monto, entrada.montoUsd, tipoCambioSesion);
-  }
+  const montoTotal = entrada.pagos.reduce((suma, pago) => suma + pago.monto, 0);
 
   const resultado = sqlite.transaction(() => {
-    const pagoId = randomUUID();
-    db.insert(pagos)
-      .values({
-        id: pagoId,
-        sesionCajaId,
-        ventaId: undefined,
-        clienteId: entrada.clienteId,
-        metodo: entrada.metodo,
-        montoUsd,
-        tipoCambio,
-        monto: entrada.monto,
-        recibido,
-        vuelto,
-        referencia: entrada.referencia,
-        verificado: entrada.metodo !== 'sinpe',
-        usuarioId,
-      })
-      .run();
-
     const saldoAnterior = saldoActualCliente(entrada.clienteId);
-    db.insert(movimientosCuenta)
-      .values({
-        id: randomUUID(),
-        clienteId: entrada.clienteId,
-        tipo: 'abono',
-        monto: entrada.monto,
-        pagoId,
-        usuarioId,
-      })
-      .run();
 
-    return { pagoId, saldoAnterior, saldoNuevo: saldoAnterior - entrada.monto };
+    const pagosCreados = entrada.pagos.map((pago) => {
+      let recibido: number | undefined;
+      let vuelto: number | undefined;
+      let montoUsd: number | undefined;
+      let tipoCambio: number | undefined;
+
+      if (pago.metodo === 'efectivo') {
+        if (pago.recibido === undefined) throw new CuentaError('Falta el monto recibido');
+        recibido = pago.recibido;
+        vuelto = calcularVueltoCrc(pago.monto, pago.recibido);
+      }
+      if (pago.metodo === 'efectivo_usd') {
+        if (pago.montoUsd === undefined) throw new CuentaError('Falta el monto en dólares');
+        montoUsd = pago.montoUsd;
+        tipoCambio = tipoCambioSesion;
+        vuelto = calcularVueltoUsd(pago.monto, pago.montoUsd, tipoCambioSesion);
+      }
+
+      const pagoId = randomUUID();
+      db.insert(pagos)
+        .values({
+          id: pagoId,
+          sesionCajaId,
+          ventaId: undefined,
+          clienteId: entrada.clienteId,
+          metodo: pago.metodo,
+          montoUsd,
+          tipoCambio,
+          monto: pago.monto,
+          recibido,
+          vuelto,
+          referencia: pago.referencia,
+          verificado: pago.metodo !== 'sinpe',
+          usuarioId,
+        })
+        .run();
+
+      db.insert(movimientosCuenta)
+        .values({
+          id: randomUUID(),
+          clienteId: entrada.clienteId,
+          tipo: 'abono',
+          monto: pago.monto,
+          pagoId,
+          usuarioId,
+        })
+        .run();
+
+      return { id: pagoId, metodo: pago.metodo, monto: pago.monto };
+    });
+
+    return { pagosCreados, saldoAnterior, saldoNuevo: saldoAnterior - montoTotal };
   })();
 
   return { cliente, ...resultado };

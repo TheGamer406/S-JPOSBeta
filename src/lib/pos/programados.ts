@@ -4,6 +4,7 @@ import { db, sqlite } from '@/db/client';
 import { clientes, movimientosCuenta, pagos, productos, ventaItems, ventas } from '@/db/schema';
 import { siguienteNumeroOrdenDia } from '@/db/contadores';
 import { calcularVueltoCrc, calcularVueltoUsd } from '@/lib/dinero';
+import { saldoActualCliente } from './ventas';
 import type { esquemaCrearProgramado, esquemaDespacharProgramado } from './esquemas';
 import type { z } from 'zod';
 
@@ -133,7 +134,9 @@ export async function despacharDeProgramado(
 
   const [cliente] = await db.select().from(clientes).where(eq(clientes.id, programado.clienteId));
   if (!cliente) throw new ProgramadoError('Cliente no encontrado');
-  if (entrada.pago.metodo === 'cuenta' && cliente.estado === 'bloqueado') {
+
+  const pagosCuenta = entrada.pagos.filter((pago) => pago.metodo === 'cuenta');
+  if (pagosCuenta.length > 0 && cliente.estado === 'bloqueado') {
     throw new ProgramadoError(`La cuenta ${cliente.numeroCuenta} está bloqueada`);
   }
 
@@ -174,9 +177,17 @@ export async function despacharDeProgramado(
   const total = totalSacado + totalAdicional;
   if (total <= 0) throw new ProgramadoError('El despacho quedó en cero');
 
+  const sumaPagos = entrada.pagos.reduce((suma, pago) => suma + pago.monto, 0);
+  if (sumaPagos !== total) {
+    throw new ProgramadoError(`Los pagos suman ${sumaPagos} pero el total es ${total}`);
+  }
+
+  const montoCuenta = pagosCuenta.reduce((suma, pago) => suma + pago.monto, 0);
+  const estadoPago = montoCuenta === 0 ? 'pagada' : montoCuenta === total ? 'a_cuenta' : 'parcial';
+
   const ventaId = randomUUID();
 
-  sqlite.transaction(() => {
+  const resultado = sqlite.transaction(() => {
     db.insert(ventas)
       .values({
         id: ventaId,
@@ -189,7 +200,7 @@ export async function despacharDeProgramado(
         subtotal: total,
         descuento: 0,
         total,
-        estadoPago: entrada.pago.metodo === 'cuenta' ? 'a_cuenta' : 'pagada',
+        estadoPago,
         programadoOrigenId: programado.id,
         idempotencyKey: entrada.idempotencyKey,
       })
@@ -235,63 +246,62 @@ export async function despacharDeProgramado(
         .run();
     }
 
-    const pagoId = randomUUID();
-    if (entrada.pago.metodo === 'cuenta') {
-      db.insert(pagos)
-        .values({
-          id: pagoId,
-          sesionCajaId,
-          ventaId,
-          clienteId: cliente.id,
-          metodo: 'cuenta',
-          monto: total,
-          verificado: true,
-          usuarioId,
-        })
-        .run();
-      db.insert(movimientosCuenta)
-        .values({
-          id: randomUUID(),
-          clienteId: cliente.id,
-          tipo: 'cargo',
-          monto: total,
-          ventaId,
-          pagoId,
-          usuarioId,
-        })
-        .run();
-    } else {
+    const pagosCreados = entrada.pagos.map((pago) => {
       let recibido: number | undefined;
       let vuelto: number | undefined;
       let montoUsd: number | undefined;
       let tipoCambio: number | undefined;
 
-      if (entrada.pago.metodo === 'efectivo') {
-        recibido = entrada.pago.recibido ?? total;
-        vuelto = calcularVueltoCrc(total, recibido);
+      if (pago.metodo === 'efectivo') {
+        recibido = pago.recibido ?? pago.monto;
+        vuelto = calcularVueltoCrc(pago.monto, recibido);
       }
-      if (entrada.pago.metodo === 'efectivo_usd' && entrada.pago.montoUsd !== undefined) {
-        montoUsd = entrada.pago.montoUsd;
+      if (pago.metodo === 'efectivo_usd' && pago.montoUsd !== undefined) {
+        montoUsd = pago.montoUsd;
         tipoCambio = tipoCambioSesion;
-        vuelto = calcularVueltoUsd(total, entrada.pago.montoUsd, tipoCambioSesion);
+        vuelto = calcularVueltoUsd(pago.monto, pago.montoUsd, tipoCambioSesion);
       }
 
-      db.insert(pagos)
+      const filaPago = {
+        id: randomUUID(),
+        sesionCajaId,
+        ventaId,
+        clienteId: pago.metodo === 'cuenta' ? cliente.id : undefined,
+        metodo: pago.metodo,
+        monto: pago.monto,
+        recibido,
+        vuelto,
+        montoUsd,
+        tipoCambio,
+        referencia: pago.referencia,
+        verificado: pago.metodo !== 'sinpe',
+        usuarioId,
+      };
+      db.insert(pagos).values(filaPago).run();
+      return filaPago;
+    });
+
+    let saldoCliente: { saldoAnterior: number; saldoNuevo: number; pasaLimite: boolean } | undefined;
+    if (montoCuenta > 0) {
+      const saldoAnterior = saldoActualCliente(cliente.id);
+      const pagoCuenta = pagosCreados.find((pago) => pago.metodo === 'cuenta')!;
+      db.insert(movimientosCuenta)
         .values({
-          id: pagoId,
-          sesionCajaId,
+          id: randomUUID(),
+          clienteId: cliente.id,
+          tipo: 'cargo',
+          monto: montoCuenta,
           ventaId,
-          metodo: entrada.pago.metodo,
-          monto: total,
-          recibido,
-          vuelto,
-          montoUsd,
-          tipoCambio,
-          referencia: entrada.pago.referencia,
-          verificado: entrada.pago.metodo !== 'sinpe',
+          pagoId: pagoCuenta.id,
           usuarioId,
         })
         .run();
+      const saldoNuevo = saldoAnterior + montoCuenta;
+      saldoCliente = {
+        saldoAnterior,
+        saldoNuevo,
+        pasaLimite: cliente.limiteCredito != null && saldoNuevo > cliente.limiteCredito,
+      };
     }
 
     // Estado del plan: completo cuando ya no queda nada pendiente.
@@ -308,9 +318,11 @@ export async function despacharDeProgramado(
       })
       .where(eq(ventas.id, programado.id))
       .run();
+
+    return { saldoCliente };
   })();
 
   const [ventaCreada] = await db.select().from(ventas).where(eq(ventas.id, ventaId));
   const itemsCreados = await db.select().from(ventaItems).where(eq(ventaItems.ventaId, ventaId));
-  return { venta: ventaCreada, items: itemsCreados, total };
+  return { venta: ventaCreada, items: itemsCreados, total, saldoCliente: resultado.saldoCliente };
 }

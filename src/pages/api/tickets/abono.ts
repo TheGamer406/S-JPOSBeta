@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { eq } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/db/client';
 import { pagos } from '@/db/schema';
@@ -9,7 +9,9 @@ import { ticketAbono, type MedioPago } from '@/lib/tickets/templates';
 import { CuentaError, obtenerEstadoCuenta } from '@/lib/pos/cuentas';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
 
-const esquema = z.object({ pagoId: z.string().uuid() });
+// Un abono puede quedar partido en varios pagos (§7, pago dividido) — el tiquete
+// es uno solo con una línea por medio usado, por eso recibe la lista completa.
+const esquema = z.object({ pagoIds: z.array(z.string().uuid()).min(1) });
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const usuario = await obtenerUsuarioActual(cookies);
@@ -20,14 +22,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return new Response(JSON.stringify({ error: resultado.error.issues.map((i) => i.message).join('; ') }), { status: 400 });
   }
 
-  const [pago] = await db.select().from(pagos).where(eq(pagos.id, resultado.data.pagoId));
-  if (!pago || !pago.clienteId) {
+  const pagosAbono = await db.select().from(pagos).where(inArray(pagos.id, resultado.data.pagoIds));
+  const clienteId = pagosAbono[0]?.clienteId;
+  if (pagosAbono.length === 0 || !clienteId) {
     return new Response(JSON.stringify({ error: 'Abono no encontrado' }), { status: 404 });
   }
 
   let estado;
   try {
-    estado = await obtenerEstadoCuenta(pago.clienteId);
+    estado = await obtenerEstadoCuenta(clienteId);
   } catch (error) {
     if (error instanceof CuentaError) {
       return new Response(JSON.stringify({ error: error.message }), { status: 404 });
@@ -38,9 +41,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const ticket = ticketAbono({
     numeroCuenta: estado.cliente.numeroCuenta,
     nombre: estado.cliente.nombre,
-    monto: pago.monto,
-    medioPago: pago.metodo as MedioPago,
-    fechaHora: pago.creadoEn,
+    pagos: pagosAbono.map((pago) => ({ metodo: pago.metodo as MedioPago, monto: pago.monto })),
+    fechaHora: pagosAbono[0].creadoEn,
     saldoPendiente: estado.saldo,
   });
 

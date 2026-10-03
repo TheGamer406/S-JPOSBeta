@@ -66,13 +66,18 @@ export const esquemaCambiarEspera = z.object({
   enEspera: z.boolean(),
 });
 
-export const esquemaRegistrarAbono = z.object({
-  clienteId: z.string().uuid(),
+export const esquemaPagoAbono = z.object({
   metodo: z.enum(['efectivo', 'efectivo_usd', 'sinpe', 'datafono_bac', 'datafono_bn']),
   monto: z.number().int().positive(),
   recibido: z.number().int().positive().optional(),
   montoUsd: z.number().int().positive().optional(),
   referencia: z.string().optional(),
+});
+
+// Un abono se puede pagar dividido entre varios medios, igual que una venta (§7).
+export const esquemaRegistrarAbono = z.object({
+  clienteId: z.string().uuid(),
+  pagos: z.array(esquemaPagoAbono).min(1),
 });
 
 export const esquemaMovimientoCaja = z.object({
@@ -95,21 +100,13 @@ export const esquemaCrearProgramado = z.object({
   items: z.array(esquemaItemVenta).min(1),
 });
 
-// Pago de un despacho: igual que cobrar una venta normal — el cajero elige en el
-// momento si se paga ahora (cualquier medio) o se carga a la cuenta del cliente.
-// El monto lo calcula el servidor a partir de lo despachado, nunca el cliente.
-export const esquemaPagoEntrega = z.object({
-  metodo: z.enum(['efectivo', 'efectivo_usd', 'sinpe', 'datafono_bac', 'datafono_bn', 'cuenta']),
-  recibido: z.number().int().positive().optional(),
-  montoUsd: z.number().int().positive().optional(),
-  referencia: z.string().optional(),
-});
-
 /**
  * Despacho de un pedido programado (§3.5): se saca una parte del plan y se
  * convierte en una venta real. `lineas` es cuánto se saca AHORA de cada línea
  * del plan (no el acumulado), y `adicionales` son productos que el cliente pide
- * en el momento y no estaban en el pedido original.
+ * en el momento y no estaban en el pedido original. El cobro es igual que una
+ * venta normal — cualquier medio, a cuenta, o dividido entre varios (§7); el
+ * servidor valida que lo pagado sume exacto contra lo despachado.
  */
 export const esquemaLineaDespacho = z.object({
   ventaItemId: z.string().uuid(),
@@ -121,7 +118,7 @@ export const esquemaDespacharProgramado = z
     programadoId: z.string().uuid(),
     lineas: z.array(esquemaLineaDespacho).default([]),
     adicionales: z.array(esquemaItemVenta).default([]),
-    pago: esquemaPagoEntrega,
+    pagos: z.array(esquemaPago).min(1),
     idempotencyKey: z.string().min(10),
   })
   .refine((datos) => datos.lineas.length > 0 || datos.adicionales.length > 0, {

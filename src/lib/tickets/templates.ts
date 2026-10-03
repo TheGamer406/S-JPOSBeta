@@ -191,15 +191,16 @@ export function ticketCargoCuenta(datos: {
   };
 }
 
-/** Abono (§3.10): cuando el cliente paga su cuenta, total o parcial. */
+/** Abono (§3.10): cuando el cliente paga su cuenta, total o parcial — se puede
+ * pagar dividido entre varios medios (§7), por eso lista uno por línea. */
 export function ticketAbono(datos: {
   numeroCuenta: string;
   nombre: string;
-  monto: number;
-  medioPago: MedioPago;
+  pagos: { metodo: MedioPago; monto: number }[];
   fechaHora: string;
   saldoPendiente: number;
 }): Ticket {
+  const montoTotal = datos.pagos.reduce((suma, pago) => suma + pago.monto, 0);
   return {
     titulo: `Abono ${datos.numeroCuenta}`,
     copias: 1,
@@ -209,8 +210,13 @@ export function ticketAbono(datos: {
       { tipo: 'texto', texto: `Cuenta: ${datos.numeroCuenta} - ${datos.nombre}` },
       { tipo: 'texto', texto: datos.fechaHora },
       { tipo: 'separador' },
-      { tipo: 'texto', texto: `Monto abonado: ${formatoCRC(datos.monto)}`, negrita: true },
-      { tipo: 'texto', texto: `Medio: ${NOMBRE_MEDIO_PAGO[datos.medioPago]}` },
+      { tipo: 'texto', texto: `Monto abonado: ${formatoCRC(montoTotal)}`, negrita: true },
+      ...datos.pagos.map(
+        (pago): LineaItem => ({
+          tipo: 'texto',
+          texto: `  ${NOMBRE_MEDIO_PAGO[pago.metodo]}: ${formatoCRC(pago.monto)}`,
+        }),
+      ),
       { tipo: 'texto', texto: `Saldo pendiente: ${formatoCRC(datos.saldoPendiente)}` },
       ...PIE_LEGAL,
     ],
