@@ -67,7 +67,7 @@ export default function VistaCocina() {
     });
 
   return (
-    <div class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {activos.map(({ venta, items }) => {
         const minutos = (Date.now() - epochDeFechaSqlite(venta.creadoEn)) / 60000;
         const tarde = minutos > MINUTOS_ALERTA;
@@ -76,7 +76,7 @@ export default function VistaCocina() {
         return (
           <div
             key={venta.id}
-            class={`rounded-xl p-5 ${
+            class={`rounded-lg p-3 ${
               venta.enEspera
                 ? 'bg-[var(--background_color_1)] opacity-60'
                 : tarde
@@ -85,23 +85,23 @@ export default function VistaCocina() {
             }`}
           >
             <div class="flex items-center justify-between">
-              <span class="text-3xl font-bold">
+              <span class="text-xl font-bold">
                 {venta.numeroOrdenDia ? `#${String(venta.numeroOrdenDia).padStart(3, '0')}` : 'Programado'}
               </span>
-              <span class="text-xl">{Math.round(minutos)} min</span>
+              <span class="text-base">{Math.round(minutos)} min</span>
             </div>
             <div class="flex gap-2">
               {venta.prioridad && !venta.enEspera && (
-                <span class="rounded bg-[var(--gold)] px-2 text-sm font-bold text-black">⭐ PRIORIDAD</span>
+                <span class="rounded bg-[var(--gold)] px-2 text-xs font-bold text-black">⭐ PRIORIDAD</span>
               )}
-              {venta.enEspera && <span class="rounded bg-black/40 px-2 text-sm font-bold">⏸ EN ESPERA</span>}
+              {venta.enEspera && <span class="rounded bg-black/40 px-2 text-xs font-bold">⏸ EN ESPERA</span>}
             </div>
-            {venta.nombreReferencia && <p class="text-xl">{venta.nombreReferencia}</p>}
-            <ul class="mt-3 flex flex-col gap-1 text-2xl">
+            {venta.nombreReferencia && <p class="text-base">{venta.nombreReferencia}</p>}
+            <ul class="mt-2 flex flex-col gap-1 text-lg">
               {items.map((item, indice) => (
                 <li key={indice}>
                   {item.cantidad}x {item.nombreSnapshot}
-                  {item.nota && <em class="block text-lg"> {item.nota}</em>}
+                  {item.nota && <em class="block text-sm"> {item.nota}</em>}
                 </li>
               ))}
             </ul>
@@ -110,7 +110,7 @@ export default function VistaCocina() {
               <button
                 type="button"
                 onClick={() => avanzarEstado(venta.id, siguiente.estado)}
-                class="boton-pos mt-4 w-full rounded-lg bg-[var(--accent_color)] text-xl font-bold"
+                class="boton-pos mt-3 w-full rounded-lg bg-[var(--accent_color)] text-base font-bold"
               >
                 {siguiente.etiqueta}
               </button>
