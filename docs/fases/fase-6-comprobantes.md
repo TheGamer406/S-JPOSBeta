@@ -1,68 +1,46 @@
-# Fase 6 — Comprobantes: descargar o saltar en todos lados
+# Fase 6 — Comprobantes: todos imprimibles o saltables
 
 > Ronda 2. Objetivo: repasar **absolutamente todas** las partes de la app que ofrecen
-> un comprobante/tiquete y garantizar que cada una se pueda **descargar** (archivo) o
-> **saltar** — nunca que obliguen a imprimir ni que se pierdan. PLAN_POS_SJ.md §3.10,
-> §6 ("el tiquete se guarda siempre y se puede reimprimir; si la impresora falla, se
-> muestra en pantalla y se avisa").
+> un comprobante/tiquete y garantizar que cada una se pueda **imprimir o saltar** —
+> nunca que se dispare sola sin preguntar, ni que bloquee el flujo. **Decisión del
+> usuario (2026-10-03): nada de guardar/descargar — solo imprimir o saltar.**
+> PLAN_POS_SJ.md §3.10, §6 ("el tiquete se guarda siempre en el sistema y se puede
+> reimprimir; si la impresora falla, se muestra en pantalla y se avisa").
 
-## Inventario de comprobantes hoy (punto de partida real)
+## Inventario de comprobantes (estado real antes de esta fase)
 
-Todos los tiquetes pasan por `emitirTicket()` (`src/lib/tickets/index.ts`): si hay
-impresora, imprime; si no, cae a **vista previa HTML en pantalla** (`VistaPreviaTicket`).
-Ninguno se puede **guardar como archivo** todavía.
+Todos pasan por `emitirTicket()` (`src/lib/tickets/index.ts`): si hay impresora,
+imprime; si no, cae a vista previa HTML en pantalla (`VistaPreviaTicket`).
 
-| Comprobante | Endpoint / origen | ¿Se puede saltar hoy? | ¿Se puede descargar hoy? |
-|---|---|---|---|
-| Tiquete de venta | `/api/tickets/venta` (`ConfirmarImpresion` en `PantallaVenta`) | ✅ sí (botón Saltar) | ❌ no (solo preview) |
-| Cargo a cuenta | `/api/tickets/venta` cuando es a cuenta/parcial | ✅ sí | ❌ no |
-| Comanda de cocina | `/api/tickets/comanda` (checkbox en `PantallaVenta`) | ✅ sí (desmarcar) | ❌ no (interna) |
-| Apertura de cuenta | `/api/tickets/apertura-cuenta` (`ConfirmarImpresion` en `BuscadorCliente`) | ✅ sí | ❌ no |
-| Abono | `/api/tickets/abono` (`ConfirmarImpresion` en `PantallaCuentas`) | ✅ sí | ❌ no |
-| Estado de cuenta | `/api/tickets/estado-cuenta` (botón a pedido) | ✅ sí (es a pedido) | ❌ no |
-| Tiquete de cierre | `/api/tickets/cierre` (`FormularioCierre`) | ⚠️ revisar | ❌ no (hay PDF aparte) |
-| **PDF de cierre** | `/api/caja/reporte-pdf` | — | ✅ sí (`attachment`) |
-| **Hoja de despacho** | `/api/programados/despacho-pdf` | — | ✅ sí (`attachment`) |
-| **Despacho de programado** | `/api/programados/despachar` | — | ❌ **no emite comprobante** |
-
-### Lo que falta (resumen)
-- **Descargar**: ningún tiquete tipo recibo se puede bajar como archivo. Solo existen
-  los 2 PDFs grandes (cierre, despacho), que no son el "tiquete del cliente".
-- **Despacho de programado no emite comprobante** — hueco frente a ventas (se cubre
-  aquí y en la Fase 7).
-- **Tiquete de cierre**: confirmar que `FormularioCierre` deja saltarlo explícitamente.
+| Comprobante | Origen | ¿Imprimir o saltar hoy? |
+|---|---|---|
+| Tiquete de venta | `PantallaVenta` → `ConfirmarImpresion` | ✅ sí |
+| Cargo a cuenta | mismo flujo (venta a cuenta/parcial) | ✅ sí |
+| Comanda de cocina | checkbox antes de cobrar en `PantallaVenta` | ✅ sí (se decide antes, no después) |
+| Apertura de cuenta | `BuscadorCliente` → `ConfirmarImpresion` | ✅ sí |
+| Abono | `PantallaCuentas` → `ConfirmarImpresion` | ✅ sí |
+| Estado de cuenta | botón a pedido en `PantallaCuentas` | ✅ sí (opt-in, no hace falta preguntar) |
+| **Tiquete de cierre** | `FormularioCierre.cerrar()` | ❌ **se dispara solo, sin preguntar** |
+| **Despacho de programado** | `ModalGestionProgramado.despachar()` | ❌ **no emite ningún comprobante** |
 
 ## Checklist
 
-### Descargar cualquier tiquete (un solo punto para todos)
-- [ ] Añadir botón **"Descargar"** en `VistaPreviaTicket` (y/o junto a cada
-      `ConfirmarImpresion`). Como todos los tiquetes pasan por `emitirTicket`, basta un
-      solo chokepoint: generar un archivo descargable a partir del modelo `Ticket`.
-- [ ] Decidir formato de descarga: **PDF** (reusar `pdfkit`, ya está en el proyecto por
-      `pdfCierre`/`pdfDespacho`) para que abra/imprima en cualquier lado. Alternativa
-      liviana: descargar el HTML del preview. Recomendación: PDF, ancho de tiquete
-      (58/80 mm) para que se vea como el papel.
-- [ ] Endpoint o helper `ticket → PDF` que reciba el mismo `Ticket` y devuelva
-      `application/pdf` con `Content-Disposition: attachment` (mismo patrón que
-      `reporte-pdf.ts`). Nombre de archivo con tipo + consecutivo/fecha.
-
-### Saltar en todos lados (cerrar los que falten)
-- [ ] Verificar/garantizar que **cada** disparo de tiquete tenga una salida sin
-      imprimir: venta ✅, cargo ✅, comanda ✅, apertura ✅, abono ✅, estado de cuenta ✅
-      (a pedido), **cierre ⚠️ revisar `FormularioCierre`**.
-- [ ] Donde el tiquete se dispara "automático" (p. ej. apertura al crear cliente), que
-      la opción de saltar quede siempre visible — ya lo hace `BuscadorCliente`, revisar
-      que no haya ningún disparo forzado sin `ConfirmarImpresion`.
-
-### Programados (enlaza con Fase 7)
-- [ ] El despacho de un programado debe emitir su comprobante (tiquete de venta o cargo
-      a cuenta, según cómo se cobró), con las mismas opciones imprimir / descargar /
-      saltar que una venta de mostrador.
+- [x] **Tiquete de cierre**: agregar el mismo paso `ConfirmarImpresion` que ya usan
+      venta/abono/apertura, en vez de llamar a `/api/tickets/cierre` automáticamente
+      al confirmar el cierre (`FormularioCierre.tsx`).
+- [x] **Despacho de programado emite comprobante**: `despacharDeProgramado` ya crea
+      una `venta` real (`tipo: 'mostrador'`), así que `/api/tickets/venta` funciona
+      sin tocarla — solo faltaba conectarlo desde `ModalGestionProgramado.tsx`, con el
+      mismo patrón imprimir/saltar que `PantallaVenta` (tiquete de venta o de cargo a
+      cuenta según el método de pago usado).
+- [x] Confirmar que ningún comprobante quedó con descarga de archivo — por decisión
+      explícita, se revierte cualquier intento de agregar "Descargar" (los 2 PDFs de
+      gestión — cierre completo y hoja de despacho — no son "comprobantes" en este
+      sentido y se quedan como están, son reportes internos, no tiquetes de cliente).
 
 ## Referencias al plan
 
 §3.10 (tiquetes y comanda), §6 (nunca se pierde un tiquete; se puede reimprimir).
-Código: `src/lib/tickets/` (`index.ts`, `templates.ts`, `preview.ts`, `printer.ts`),
-`src/components/pos/{ConfirmarImpresion,VistaPreviaTicket}.tsx`,
-`src/lib/pos/{pdfCierre,pdfDespacho}.ts`, `src/pages/api/caja/reporte-pdf.ts` (patrón de
-descarga).
+Código: `src/components/pos/{ConfirmarImpresion,VistaPreviaTicket,FormularioCierre,
+ModalGestionProgramado,PantallaVenta}.tsx`, `src/pages/api/tickets/{venta,cierre}.ts`,
+`src/lib/pos/programados.ts` (`despacharDeProgramado`).

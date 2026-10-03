@@ -1,5 +1,7 @@
 import { useState } from 'preact/hooks';
 import { formatoCRC, calcularVueltoCrc, calcularVueltoUsd } from '@/lib/dinero';
+import ConfirmarImpresion from './ConfirmarImpresion';
+import VistaPreviaTicket from './VistaPreviaTicket';
 
 export interface ItemPlan {
   id: string;
@@ -80,6 +82,8 @@ export default function ModalGestionProgramado({
   const [referencia, setReferencia] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [pendienteImprimir, setPendienteImprimir] = useState<string | null>(null);
+  const [vistaPrevia, setVistaPrevia] = useState<{ html: string; aviso?: string } | null>(null);
 
   const pendientes = items.filter((item) => item.cantidad - item.cantidadEntregada > 0);
 
@@ -163,6 +167,32 @@ export default function ModalGestionProgramado({
       return;
     }
 
+    // El tiquete es para el cliente — se pregunta, igual que en una venta de
+    // mostrador (§3.10). onListo() se llama al cerrar este paso, no antes, para
+    // no refrescar la cola de programados mientras el tiquete sigue en pantalla.
+    setPendienteImprimir(cuerpo.venta.id);
+  }
+
+  async function imprimirTicketDespacho() {
+    if (!pendienteImprimir) return;
+    const ventaId = pendienteImprimir;
+    setPendienteImprimir(null);
+
+    const respuesta = await fetch('/api/tickets/venta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ventaId }),
+    });
+    const emision = await respuesta.json();
+    if (emision.html) {
+      setVistaPrevia({ html: emision.html, aviso: emision.error });
+    } else {
+      onListo();
+    }
+  }
+
+  function saltarTicketDespacho() {
+    setPendienteImprimir(null);
     onListo();
   }
 
@@ -364,6 +394,21 @@ export default function ModalGestionProgramado({
           </button>
         </div>
       </div>
+
+      {pendienteImprimir && (
+        <ConfirmarImpresion onImprimir={imprimirTicketDespacho} onSaltar={saltarTicketDespacho} />
+      )}
+
+      {vistaPrevia && (
+        <VistaPreviaTicket
+          html={vistaPrevia.html}
+          aviso={vistaPrevia.aviso}
+          onCerrar={() => {
+            setVistaPrevia(null);
+            onListo();
+          }}
+        />
+      )}
     </div>
   );
 }
