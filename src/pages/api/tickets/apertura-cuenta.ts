@@ -7,6 +7,7 @@ import { emitirTicket } from '@/lib/tickets';
 import { obtenerConfigImpresora } from '@/lib/pos/configuracionImpresora';
 import { ticketAperturaCuenta } from '@/lib/tickets/templates';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+import { formatoFechaHora } from '@/lib/fecha';
 
 const esquema = z.object({ clienteId: z.string().uuid() });
 
@@ -33,7 +34,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     nombre: cliente.nombre,
     cedula: cliente.cedula,
     tipo: `${NOMBRE_TIPO[cliente.tipo]}${cliente.organizacion ? ` (${cliente.organizacion})` : ''}`,
-    fechaHora: cliente.creadoEn,
+    fechaHora: formatoFechaHora(cliente.creadoEn),
     abrioUsuario: usuario.nombre,
   });
 

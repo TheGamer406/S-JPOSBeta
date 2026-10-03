@@ -8,6 +8,7 @@ import { obtenerConfigImpresora } from '@/lib/pos/configuracionImpresora';
 import { ticketAbono, type MedioPago } from '@/lib/tickets/templates';
 import { CuentaError, obtenerEstadoCuenta } from '@/lib/pos/cuentas';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+import { formatoFechaHora } from '@/lib/fecha';
 
 // Un abono puede quedar partido en varios pagos (§7, pago dividido) — el tiquete
 // es uno solo con una línea por medio usado, por eso recibe la lista completa.
@@ -42,7 +43,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     numeroCuenta: estado.cliente.numeroCuenta,
     nombre: estado.cliente.nombre,
     pagos: pagosAbono.map((pago) => ({ metodo: pago.metodo as MedioPago, monto: pago.monto })),
-    fechaHora: pagosAbono[0].creadoEn,
+    fechaHora: formatoFechaHora(pagosAbono[0].creadoEn),
     saldoPendiente: estado.saldo,
   });
 

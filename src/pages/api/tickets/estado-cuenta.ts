@@ -5,6 +5,7 @@ import { obtenerConfigImpresora } from '@/lib/pos/configuracionImpresora';
 import { ticketEstadoCuenta } from '@/lib/tickets/templates';
 import { CuentaError, obtenerEstadoCuenta } from '@/lib/pos/cuentas';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
+import { formatoFechaHora } from '@/lib/fecha';
 
 const esquema = z.object({ clienteId: z.string().uuid() });
 
@@ -31,7 +32,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     numeroCuenta: estado.cliente.numeroCuenta,
     nombre: estado.cliente.nombre,
     movimientos: estado.movimientos.map((movimiento) => ({
-      fecha: movimiento.creadoEn,
+      fecha: formatoFechaHora(movimiento.creadoEn),
       tipo: movimiento.tipo,
       monto: movimiento.monto,
     })),

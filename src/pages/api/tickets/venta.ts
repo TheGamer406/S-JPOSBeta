@@ -8,6 +8,7 @@ import { obtenerConfigImpresora } from '@/lib/pos/configuracionImpresora';
 import { ticketCargoCuenta, ticketVenta, type PagoVenta } from '@/lib/tickets/templates';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
 import { saldoActualCliente } from '@/lib/pos/ventas';
+import { formatoFechaHora } from '@/lib/fecha';
 
 const esquema = z.object({ ventaId: z.string().uuid() });
 
@@ -57,7 +58,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const saldoActual = cliente ? saldoActualCliente(cliente.id) : 0;
     ticket = ticketCargoCuenta({
       numeroOrden: venta.numeroOrdenDia ?? 0,
-      fechaHora: venta.creadoEn,
+      fechaHora: formatoFechaHora(venta.creadoEn),
       cajero: cajero?.nombre ?? '-',
       items: itemsTicket,
       total: venta.total,
@@ -69,7 +70,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   } else {
     ticket = ticketVenta({
       numeroOrden: venta.numeroOrdenDia ?? 0,
-      fechaHora: venta.creadoEn,
+      fechaHora: formatoFechaHora(venta.creadoEn),
       cajero: cajero?.nombre ?? '-',
       items: itemsTicket,
       total: venta.total,
