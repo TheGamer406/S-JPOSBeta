@@ -223,11 +223,20 @@ export function ticketAbono(datos: {
   };
 }
 
-/** Estado de cuenta (§3.10): a pedido, lista de cargos/abonos y saldo final. */
+/**
+ * Estado de cuenta (§3.10): a pedido, lista de cargos/abonos y saldo final. Cada
+ * cargo muestra qué productos lo generaron — el cliente tiene que poder ver de
+ * qué es cada monto que debe, no solo el total.
+ */
 export function ticketEstadoCuenta(datos: {
   numeroCuenta: string;
   nombre: string;
-  movimientos: { fecha: string; tipo: 'cargo' | 'abono' | 'ajuste'; monto: number }[];
+  movimientos: {
+    fecha: string;
+    tipo: 'cargo' | 'abono' | 'ajuste';
+    monto: number;
+    items?: { nombre: string; cantidad: number }[];
+  }[];
   saldoFinal: number;
 }): Ticket {
   return {
@@ -238,12 +247,16 @@ export function ticketEstadoCuenta(datos: {
       { tipo: 'texto', texto: 'ESTADO DE CUENTA', align: 'centro', negrita: true },
       { tipo: 'texto', texto: `Cuenta: ${datos.numeroCuenta} - ${datos.nombre}` },
       { tipo: 'separador' },
-      ...datos.movimientos.map(
-        (movimiento): LineaItem => ({
+      ...datos.movimientos.flatMap((movimiento): LineaItem[] => [
+        {
           tipo: 'texto',
           texto: `${movimiento.fecha}  ${movimiento.tipo.toUpperCase()}  ${formatoCRC(movimiento.monto)}`,
-        }),
-      ),
+          negrita: movimiento.tipo === 'cargo',
+        },
+        ...(movimiento.items ?? []).map(
+          (item): LineaItem => ({ tipo: 'texto', texto: `  ${item.cantidad}x ${item.nombre}` }),
+        ),
+      ]),
       { tipo: 'separador' },
       { tipo: 'texto', texto: `SALDO: ${formatoCRC(datos.saldoFinal)}`, negrita: true, grande: true },
       ...PIE_LEGAL,

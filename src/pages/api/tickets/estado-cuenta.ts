@@ -35,6 +35,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       fecha: formatoFechaHora(movimiento.creadoEn),
       tipo: movimiento.tipo,
       monto: movimiento.monto,
+      items: movimiento.items,
     })),
     saldoFinal: estado.saldo,
   });

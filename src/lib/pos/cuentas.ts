@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { asc, eq } from 'drizzle-orm';
 import { db, sqlite } from '@/db/client';
-import { clientes, movimientosCuenta, pagos } from '@/db/schema';
+import { clientes, movimientosCuenta, pagos, ventaItems } from '@/db/schema';
 import { calcularVueltoCrc, calcularVueltoUsd } from '@/lib/dinero';
 import { saldoActualCliente } from './ventas';
 
@@ -104,9 +104,15 @@ export interface MovimientoEstadoCuenta {
   monto: number;
   nota: string | null;
   creadoEn: string;
+  /** Qué se compró (solo en un "cargo" que viene de una venta real). */
+  items?: { nombre: string; cantidad: number }[];
 }
 
-/** Estado de cuenta (§3.6): lista de cargos/abonos con el saldo final. */
+/**
+ * Estado de cuenta (§3.6): lista de cargos/abonos con el saldo final. Cada
+ * "cargo" trae el detalle de qué productos lo generaron — el cliente debe poder
+ * ver de qué es cada monto, no solo el total.
+ */
 export async function obtenerEstadoCuenta(clienteId: string) {
   const [cliente] = await db.select().from(clientes).where(eq(clientes.id, clienteId));
   if (!cliente) throw new CuentaError('Cliente no encontrado');
@@ -117,12 +123,29 @@ export async function obtenerEstadoCuenta(clienteId: string) {
     .where(eq(movimientosCuenta.clienteId, clienteId))
     .orderBy(asc(movimientosCuenta.creadoEn));
 
+  const movimientosConItems: MovimientoEstadoCuenta[] = [];
+  for (const movimiento of movimientos) {
+    let items: { nombre: string; cantidad: number }[] | undefined;
+    if (movimiento.tipo === 'cargo' && movimiento.ventaId) {
+      const filas = await db.select().from(ventaItems).where(eq(ventaItems.ventaId, movimiento.ventaId));
+      items = filas.map((fila) => ({ nombre: fila.nombreSnapshot, cantidad: fila.cantidad }));
+    }
+    movimientosConItems.push({
+      id: movimiento.id,
+      tipo: movimiento.tipo,
+      monto: movimiento.monto,
+      nota: movimiento.nota,
+      creadoEn: movimiento.creadoEn,
+      items,
+    });
+  }
+
   const saldo = movimientos.reduce(
     (acumulado, movimiento) => (movimiento.tipo === 'abono' ? acumulado - movimiento.monto : acumulado + movimiento.monto),
     0,
   );
 
-  return { cliente, movimientos, saldo };
+  return { cliente, movimientos: movimientosConItems, saldo };
 }
 
 export interface SaldoAntiguo {

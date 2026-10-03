@@ -21,6 +21,7 @@ interface Movimiento {
   monto: number;
   nota: string | null;
   creadoEn: string;
+  items?: { nombre: string; cantidad: number }[];
 }
 
 interface AntiguedadFila {
@@ -135,11 +136,22 @@ export default function PantallaCuentas() {
 
             <ul class="mt-4 flex flex-col gap-1">
               {movimientos.map((movimiento) => (
-                <li key={movimiento.id} class="flex justify-between rounded bg-[var(--background_color_2)] px-3 py-2">
-                  <span class="capitalize">
-                    {formatoFechaHora(movimiento.creadoEn)} · {movimiento.tipo}
-                  </span>
-                  <span class="monto">{formatoCRC(movimiento.monto)}</span>
+                <li key={movimiento.id} class="rounded bg-[var(--background_color_2)] px-3 py-2">
+                  <div class="flex justify-between">
+                    <span class="capitalize">
+                      {formatoFechaHora(movimiento.creadoEn)} · {movimiento.tipo}
+                    </span>
+                    <span class="monto">{formatoCRC(movimiento.monto)}</span>
+                  </div>
+                  {movimiento.items && movimiento.items.length > 0 && (
+                    <ul class="mt-1 pl-2 text-sm text-[var(--text_color_2)]">
+                      {movimiento.items.map((item, indice) => (
+                        <li key={indice}>
+                          {item.cantidad}x {item.nombre}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
