@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatoCRC } from '@/lib/dinero';
+import ConfirmarImpresion from './ConfirmarImpresion';
 import VistaPreviaTicket from './VistaPreviaTicket';
 
 const BILLETES_CRC = [50000, 20000, 10000, 5000, 2000, 1000];
@@ -70,6 +71,7 @@ export default function FormularioCierre() {
     avisoRespaldo?: string;
   } | null>(null);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
+  const [pendienteImprimir, setPendienteImprimir] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -127,7 +129,12 @@ export default function FormularioCierre() {
     }
 
     setResultado(cuerpo);
+    // El tiquete de cierre también se pregunta, igual que el resto (§3.10).
+    setPendienteImprimir(true);
+  }
 
+  async function imprimirTicketCierre() {
+    setPendienteImprimir(false);
     const ticketRespuesta = await fetch('/api/tickets/cierre', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -135,6 +142,10 @@ export default function FormularioCierre() {
     });
     const emision = await ticketRespuesta.json();
     if (emision.html) setVistaPrevia(emision.html);
+  }
+
+  function saltarTicketCierre() {
+    setPendienteImprimir(false);
   }
 
   if (!sesionId) return <p class="p-4">No hay una sesión de caja abierta.</p>;
@@ -263,6 +274,14 @@ export default function FormularioCierre() {
         <button type="button" onClick={cerrar} class="boton-pos rounded-lg bg-[var(--principal-color)] text-xl font-bold">
           Cerrar caja
         </button>
+      )}
+
+      {pendienteImprimir && (
+        <ConfirmarImpresion
+          mensaje="Tiquete del cierre de caja"
+          onImprimir={imprimirTicketCierre}
+          onSaltar={saltarTicketCierre}
+        />
       )}
 
       {vistaPrevia && <VistaPreviaTicket html={vistaPrevia} onCerrar={() => setVistaPrevia(null)} />}
