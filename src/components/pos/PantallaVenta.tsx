@@ -26,7 +26,7 @@ export default function PantallaVenta() {
   const [nombreReferencia, setNombreReferencia] = useState('');
   const [tipoCambioUsd, setTipoCambioUsd] = useState(500);
   const [mostrarCobro, setMostrarCobro] = useState(false);
-  const [imprimirComanda, setImprimirComanda] = useState(true);
+  const [imprimirComanda, setImprimirComanda] = useState(false);
   const [vistaPrevia, setVistaPrevia] = useState<{ html: string; aviso?: string } | null>(null);
   const [pendienteImprimir, setPendienteImprimir] = useState<{ ventaId: string; avisoLimite?: string } | null>(null);
 
