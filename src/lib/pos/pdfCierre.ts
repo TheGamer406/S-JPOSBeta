@@ -1,12 +1,9 @@
-import { fileURLToPath } from 'node:url';
 import PDFDocument from 'pdfkit';
 import { formatoCRC, formatoUSD } from '@/lib/dinero';
 import type { ReporteCierre } from './reporteCierre';
-
 // Helvetica (la fuente base de PDFKit) no tiene el glyph de ₡ (U+20A1) y lo
 // rompe en el PDF. Noto Sans sí lo tiene y es libre de redistribuir (licencia OFL).
-const FUENTE_REGULAR = fileURLToPath(new URL('../../../assets/fonts/NotoSans-Regular.ttf', import.meta.url));
-const FUENTE_BOLD = fileURLToPath(new URL('../../../assets/fonts/NotoSans-Bold.ttf', import.meta.url));
+import { FUENTE_REGULAR, FUENTE_BOLD } from './fuentesPdf';
 
 const NOMBRE_MEDIO: Record<string, string> = {
   efectivo: 'Efectivo ₡',

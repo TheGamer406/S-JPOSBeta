@@ -1,9 +1,6 @@
 import PDFDocument from 'pdfkit';
-import { fileURLToPath } from 'node:url';
 import type { ventaItems, ventas, clientes } from '@/db/schema';
-
-const FUENTE_REGULAR = fileURLToPath(new URL('../../../assets/fonts/NotoSans-Regular.ttf', import.meta.url));
-const FUENTE_BOLD = fileURLToPath(new URL('../../../assets/fonts/NotoSans-Bold.ttf', import.meta.url));
+import { FUENTE_REGULAR, FUENTE_BOLD } from './fuentesPdf';
 
 const NOMBRE_TIEMPO: Record<string, string> = { almuerzo: 'Almuerzo', cafe: 'Café', cena: 'Cena' };
 
