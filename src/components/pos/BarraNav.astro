@@ -22,6 +22,7 @@ const { rol } = Astro.props as Props;
         <a href="/caja/cerrar" class="whitespace-nowrap rounded px-3 py-2 text-[var(--text_color_1)] hover:bg-[var(--background_color_2)]">Cerrar caja</a>
         {rol === 'admin' && (
           <>
+            <a href="/cocina" class="whitespace-nowrap rounded px-3 py-2 text-[var(--gold)] hover:bg-[var(--background_color_2)]">Cocina</a>
             <a href="/admin/reportes" class="whitespace-nowrap rounded px-3 py-2 text-[var(--gold)] hover:bg-[var(--background_color_2)]">Reportes</a>
             <a href="/admin/auditoria" class="whitespace-nowrap rounded px-3 py-2 text-[var(--gold)] hover:bg-[var(--background_color_2)]">Auditoría</a>
             <a href="/admin/usuarios" class="whitespace-nowrap rounded px-3 py-2 text-[var(--gold)] hover:bg-[var(--background_color_2)]">Usuarios</a>
