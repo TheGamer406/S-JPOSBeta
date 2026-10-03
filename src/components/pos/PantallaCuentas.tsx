@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatoCRC } from '@/lib/dinero';
+import { formatoFechaHora } from '@/lib/fecha';
 import BuscadorCliente from './BuscadorCliente';
 import ModalAbono from './ModalAbono';
 import ConfirmarImpresion from './ConfirmarImpresion';
@@ -136,7 +137,7 @@ export default function PantallaCuentas() {
               {movimientos.map((movimiento) => (
                 <li key={movimiento.id} class="flex justify-between rounded bg-[var(--background_color_2)] px-3 py-2">
                   <span class="capitalize">
-                    {movimiento.creadoEn} · {movimiento.tipo}
+                    {formatoFechaHora(movimiento.creadoEn)} · {movimiento.tipo}
                   </span>
                   <span class="monto">{formatoCRC(movimiento.monto)}</span>
                 </li>

@@ -6,6 +6,7 @@ import { db } from '@/db/client';
 import { auditoria, usuarios } from '@/db/schema';
 import { obtenerUsuarioActual } from '@/lib/pos/sesionActual';
 import { esAdmin } from '@/lib/permisos';
+import { formatoFechaHora } from '@/lib/fecha';
 
 const usuario = await obtenerUsuarioActual(Astro.cookies);
 if (!usuario) return Astro.redirect('/');
@@ -42,7 +43,7 @@ const nombrePorId = new Map(todosLosUsuarios.map((u) => [u.id, u.nombre]));
           <tbody>
             {registros.map((registro) => (
               <tr class="border-b border-[var(--background_color_2)]">
-                <td class="py-2 pr-4">{registro.creadoEn}</td>
+                <td class="py-2 pr-4">{formatoFechaHora(registro.creadoEn)}</td>
                 <td class="py-2 pr-4">{nombrePorId.get(registro.usuarioId) ?? '—'}</td>
                 <td class="py-2 pr-4">{registro.accion}</td>
                 <td class="py-2 pr-4">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { epochDeFechaSqlite } from '@/lib/fecha';
 
 interface Item {
   nombreSnapshot: string;
@@ -62,13 +63,13 @@ export default function VistaCocina() {
     .sort((a, b) => {
       if (a.venta.enEspera !== b.venta.enEspera) return a.venta.enEspera ? 1 : -1;
       if (a.venta.prioridad !== b.venta.prioridad) return a.venta.prioridad ? -1 : 1;
-      return new Date(a.venta.creadoEn).getTime() - new Date(b.venta.creadoEn).getTime();
+      return epochDeFechaSqlite(a.venta.creadoEn) - epochDeFechaSqlite(b.venta.creadoEn);
     });
 
   return (
     <div class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
       {activos.map(({ venta, items }) => {
-        const minutos = (Date.now() - new Date(venta.creadoEn).getTime()) / 60000;
+        const minutos = (Date.now() - epochDeFechaSqlite(venta.creadoEn)) / 60000;
         const tarde = minutos > MINUTOS_ALERTA;
         const siguiente = SIGUIENTE_ESTADO[venta.estadoPedido];
 
