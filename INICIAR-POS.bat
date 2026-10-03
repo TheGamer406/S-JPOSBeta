@@ -1,12 +1,13 @@
 @echo off
 REM ==========================================================
-REM   S&J POS - abrir con doble clic (Windows)
+REM   S&J POS - abrir con doble clic (Windows, Docker)
 REM ==========================================================
 REM
-REM Instala lo que falte, crea la base la primera vez, levanta el
-REM servidor y abre el navegador.
+REM Levanta el POS en Docker Desktop, arranca el puente de impresion
+REM (para la AON) y abre el navegador.
 REM
-REM IMPORTANTE: esta ventana ES el POS. Cerrarla lo apaga.
+REM IMPORTANTE: esta ventana controla el POS. Cerrarla lo apaga.
+REM La base y los respaldos quedan en la carpeta "datos".
 
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -14,18 +15,22 @@ cd /d "%~dp0"
 
 title S&J POS
 
+REM Nombre del recurso compartido de la impresora AON en Windows (ver
+REM scripts\print-bridge\bridge-impresion.ps1). Cambialo si la compartiste con otro nombre.
+if "%SJ_POS_IMPRESORA_SHARE%"=="" set SJ_POS_IMPRESORA_SHARE=AON
+
+set COMPOSE=docker compose -f docker-compose.yml -f docker-compose.windows.yml
+
 echo ==============================================
-echo    S^&J POS
+echo    S^&J POS  (Docker)
 echo ==============================================
 echo.
 
-REM --- Node instalado? ---
-where npm >nul 2>&1
+REM --- Docker Desktop corriendo? ---
+docker info >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] No se encontro Node.js en esta computadora.
-    echo.
-    echo Hay que instalarlo primero desde: https://nodejs.org
-    echo Elegi la version LTS y volve a abrir este archivo.
+    echo [ERROR] Docker Desktop no esta corriendo.
+    echo Abri Docker Desktop, espera a que diga "running" y volve a abrir este archivo.
     echo.
     pause
     exit /b 1
@@ -41,50 +46,41 @@ if not errorlevel 1 (
     exit /b 0
 )
 
-REM --- Primera vez en esta computadora: faltan las librerias. ---
-if not exist "node_modules\" (
-    echo Primera vez aca: instalando lo necesario.
-    echo Esto tarda varios minutos, no cierres la ventana.
+REM --- Arrancar el puente de impresion en una ventana aparte (minimizada). ---
+echo Arrancando el puente de impresion (impresora "%SJ_POS_IMPRESORA_SHARE%")...
+start "S&J Puente de impresion" /min powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\print-bridge\bridge-impresion.ps1" -Impresora "%SJ_POS_IMPRESORA_SHARE%"
+
+REM --- Primera vez (o tras cambios): construir la imagen si no existe. ---
+docker image inspect sj-pos:latest >nul 2>&1
+if errorlevel 1 (
+    echo Primera vez aca: construyendo la imagen. Esto tarda varios minutos, no cierres la ventana.
     echo.
-    call npm install
+    call %COMPOSE% build
     if errorlevel 1 (
         echo.
-        echo [ERROR] Fallo la instalacion. Revisa los mensajes de arriba.
+        echo [ERROR] Fallo la construccion de la imagen. Revisa los mensajes de arriba.
         pause
         exit /b 1
     )
     echo.
 )
 
-REM --- Base de datos nueva: crearla con productos y un usuario. ---
-if not exist "sj-pos.db" (
-    echo Creando la base de datos por primera vez...
-    call npm run db:migrate
-    if errorlevel 1 (
-        echo.
-        echo [ERROR] No se pudo crear la base de datos.
-        pause
-        exit /b 1
-    )
-    if "%SJ_POS_ADMIN_PIN%"=="" set SJ_POS_ADMIN_PIN=1234
-    call npm run db:seed
+echo Arrancando el POS...
+call %COMPOSE% up -d
+if errorlevel 1 (
     echo.
-    echo  ** Se creo un usuario Admin con PIN !SJ_POS_ADMIN_PIN! **
-    echo  ** Cambialo desde Usuarios antes del evento real.      **
-    echo.
+    echo [ERROR] No se pudo arrancar el POS.
+    pause
+    exit /b 1
 )
 
 REM --- Direccion para entrar desde una tablet (pantalla de cocina). ---
-REM Se toma la IP de la tarjeta que tiene salida a la red, no cualquiera
-REM (una laptop suele tener varias: WiFi, cable, virtuales).
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPConfiguration ^| Where-Object { $_.IPv4DefaultGateway -ne $null } ^| Select-Object -First 1).IPv4Address.IPAddress" 2^>nul`) do set IP_RED=%%i
-
-echo Arrancando el POS...
-echo.
 
 REM Abrir el navegador recien cuando el servidor conteste de verdad.
 start "" /min powershell -NoProfile -Command "for ($i=0; $i -lt 90; $i++) { try { Invoke-WebRequest -Uri 'http://localhost:4321' -TimeoutSec 1 -UseBasicParsing | Out-Null; Start-Process 'http://localhost:4321'; break } catch { Start-Sleep -Seconds 1 } }"
 
+echo.
 echo  POS abriendose en:  http://localhost:4321
 if not "!IP_RED!"=="" (
     echo.
@@ -94,14 +90,16 @@ if not "!IP_RED!"=="" (
 echo.
 echo  ------------------------------------------------
 echo   NO cierres esta ventana mientras uses el POS.
-echo   Para apagarlo: cerra esta ventana.
+echo   Al cerrarla, el POS se apaga.
 echo  ------------------------------------------------
 echo.
 
-call npm run dev
+REM Quedarse en primer plano mostrando los logs. Cerrar la ventana corta esto y
+REM dispara el apagado del contenedor abajo.
+call %COMPOSE% logs -f
 
-REM Si npm run dev termina (error o cierre), no cerrar de golpe:
-REM que se alcance a leer el mensaje.
+REM Cuando se corta (Ctrl+C o cierre), apagar el contenedor.
 echo.
-echo El POS se detuvo.
+echo Apagando el POS...
+call %COMPOSE% down
 pause

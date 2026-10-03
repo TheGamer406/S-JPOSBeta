@@ -8,18 +8,21 @@ y qué ya está hecho.
 
 ## Abrir el POS con doble clic
 
+El POS corre **empaquetado en Docker** (ver `docs/fases/fase-5-docker.md`). La base y
+los respaldos quedan en la carpeta `datos/` y sobreviven a apagar/reiniciar.
+
 ### Windows (la laptop del evento)
 
 Doble clic en **`INICIAR-POS.bat`**. Nada más.
 
-La primera vez instala lo necesario (tarda unos minutos) y crea la base de
-datos con un usuario Admin de PIN `1234` — **cambialo desde Usuarios antes del
-evento**. Después de eso, cada doble clic levanta el POS y abre el navegador.
+La primera vez construye la imagen (tarda unos minutos) y crea la base de datos con un
+usuario Admin de PIN `0000` — **cambialo desde Usuarios antes del evento**. Después de
+eso, cada doble clic levanta el POS, arranca el puente de impresión y abre el navegador.
 
-Requisito único: tener [Node.js](https://nodejs.org) instalado (versión LTS).
-Si falta, el script lo dice y no hace nada más.
+Requisito único: tener **Docker Desktop** instalado y corriendo. Si no está, el script
+lo dice y no hace nada más. (Ya no hace falta Node.js para correr el POS.)
 
-La ventana negra que queda abierta **es** el POS: cerrarla lo apaga.
+La ventana que queda abierta controla el POS: cerrarla lo apaga.
 
 ### Linux
 
@@ -28,7 +31,9 @@ La ventana negra que queda abierta **es** el POS: cerrarla lo apaga.
 ```
 
 Crea el ícono **S&J POS** en el escritorio y en el menú de aplicaciones; de ahí
-en adelante funciona igual que en Windows.
+en adelante funciona igual que en Windows. Requisito: **Docker** instalado y corriendo.
+El script detecta la impresora en `/dev/usb/lp0` y, si está conectada, la pasa al
+contenedor automáticamente.
 
 ### Tablet para la pantalla de cocina
 
@@ -38,7 +43,19 @@ Esa es la que se abre en la tablet, conectada al mismo WiFi que la laptop.
 En Windows puede hacer falta permitir Node.js en el Firewall la primera vez
 (sale un aviso: elegir "Redes privadas").
 
-## Arrancar en desarrollo
+## Correr en Docker a mano (sin los scripts de doble clic)
+
+```bash
+npm run docker:build        # construye la imagen sj-pos:latest
+npm run docker:up           # Linux  (incluye la impresora /dev/usb/lp0 si está)
+npm run docker:up:win       # Windows (usa el puente de impresión en el host)
+npm run docker:down         # apaga
+```
+
+El PIN del Admin inicial se fija con `SJ_POS_ADMIN_PIN=xxxx` antes de levantar la
+primera vez (si no, queda `0000`). La base y los respaldos van a `./datos`.
+
+## Arrancar en desarrollo (sin Docker)
 
 ```bash
 npm install
@@ -72,30 +89,28 @@ datos — pero la pantalla de cierre muestra el error para que se resuelva a man
 sea Epson — casi cualquier impresora térmica de recibo (AON, Epson, clones genéricos)
 habla el mismo protocolo ESC/POS, que es lo que ya usa `src/lib/tickets/printer.ts`.
 
-Para activarla, definir antes de `npm run dev` (o en `.env`):
+**En Linux** (donde se probó físicamente): `iniciar-pos.sh` detecta `/dev/usb/lp0` y lo
+pasa al contenedor solo, con el GID del grupo `lp` del sistema — no hay que configurar
+nada a mano. Si querés correr el contenedor por tu cuenta, el override
+`docker-compose.linux.yml` ya mapea el dispositivo y define
+`SJ_POS_IMPRESORA_INTERFAZ=/dev/usb/lp0`.
 
-**En Linux** (donde se probó):
-
-```bash
-SJ_POS_IMPRESORA_INTERFAZ=/dev/usb/lp0   # la ruta que aparece al conectarla
-SJ_POS_IMPRESORA_ANCHO=80                # 80 o 58
-SJ_POS_IMPRESORA_GAVETA=false            # true si tiene gaveta de dinero conectada
-```
-
-**En Windows la ruta es distinta** y esto todavía no se ha probado ahí. No sirve
-`/dev/usb/lp0`: hay que instalar la impresora en Windows, compartirla con un
-nombre, y usar `printer:NOMBRE` — por ejemplo `SJ_POS_IMPRESORA_INTERFAZ=printer:AON80`.
+**En Windows el contenedor es Linux y no ve el USB directo**, así que la impresión pasa
+por un puente que corre en el host (`scripts/print-bridge/`, arrancado solo por
+`INICIAR-POS.bat`). Hay que instalar la AON en Windows y **compartirla** con un nombre
+(por defecto `AON`); el puente recibe el ESC/POS del contenedor y lo manda a esa
+impresora. Detalle y diagnóstico en [`scripts/print-bridge/README.md`](./scripts/print-bridge/README.md).
 Conviene probarlo antes del evento, no el mismo día.
 
-Mientras no esté configurada, los tiquetes salen en pantalla y nada se pierde.
-
-En Linux, el usuario que corre la app necesita estar en el grupo `lp` (dueño del
-dispositivo `/dev/usb/lp0`):
+El ancho y la gaveta se ajustan con variables (valen en ambos sistemas):
 
 ```bash
-sudo usermod -aG lp "$USER"
-# cerrar sesión y volver a entrar para que el grupo nuevo tome efecto
+SJ_POS_IMPRESORA_ANCHO=80     # 80 o 58
+SJ_POS_IMPRESORA_GAVETA=false # true si tiene gaveta de dinero conectada
 ```
+
+Mientras no esté configurada (o si el envío falla), los tiquetes salen en pantalla y
+nada se pierde.
 
 Sin `SJ_POS_IMPRESORA_INTERFAZ` configurada (o si falla el envío), `emitirTicket()`
 cae sola a la vista previa en pantalla — nunca se pierde un tiquete. Para ver el
