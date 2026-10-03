@@ -39,7 +39,7 @@ antes de implementar; cada doc deja marcadas sus decisiones pendientes.
 |---|---|---|
 | Fase 5 — Empaquetado en Docker (Linux + Windows 11) ⭐ | [fase-5-docker.md](./fase-5-docker.md) | 🟡 Imagen + compose + lanzadores listos y probados en Linux; puente de impresión de Windows escrito pero sin probar en esa laptop |
 | Fase 6 — Comprobantes: descargar o saltar | [fase-6-comprobantes.md](./fase-6-comprobantes.md) | 🔵 Planeada — hoy ningún tiquete se descarga; despacho de programado no emite comprobante |
-| Fase 7 — Cobro unificado (Cuentas y Programados como Ventas) | [fase-7-cobro-unificado.md](./fase-7-cobro-unificado.md) | 🔵 Planeada — 3 modales de pago reimplementados por separado; unificar en uno con pago dividido |
+| Fase 7 — Cobro unificado (Cuentas y Programados como Ventas) | [fase-7-cobro-unificado.md](./fase-7-cobro-unificado.md) | 🟢 Completa — `SelectorPago` compartido, pago dividido en los 3 flujos, probado por click-through |
 
 Además, el ajuste "**Cocina en el header para admin**" quedó anotado dentro de la
 [Fase 4](./fase-4-extras.md) por ser un cambio de navegación de ~1 línea.

@@ -41,21 +41,39 @@ Extraer el núcleo de pago de `ModalCobro` a un componente reutilizable (p. ej.
 
 ## Checklist
 
-- [ ] Extraer `SelectorPago` compartido desde `ModalCobro` (métodos, atajos ₡/$,
-      referencia, a cuenta, pago dividido opcional). Un solo lugar para la lógica de
-      vuelto, mínimos y validación de "falta/sobra".
-- [ ] `ModalCobro` (ventas) pasa a consumir el componente compartido (sin cambio de UX).
-- [ ] `ModalAbono` (cuentas) consume el componente compartido: habilitar **pago
-      dividido** del abono; mantener el preview de vuelto.
-- [ ] `ModalGestionProgramado` consume el componente compartido para la parte de cobro:
-      habilitar **pago dividido**; alinear los atajos de `contra_entrega` (hoy inputs
-      sueltos, ver Fase 3) con los de ventas.
-- [ ] **Programados emite comprobante** al despachar (tiquete de venta o de cargo a
-      cuenta según el pago), con imprimir / descargar / saltar (enlaza con Fase 6).
-      Requiere que `/api/programados/despachar` devuelva el `ventaId`/`pagoId` para
-      disparar el tiquete, igual que `/api/ventas`.
-- [ ] Revisar que el aviso de **límite de crédito** (`saldoCliente.pasaLimite`) se
-      muestre también al cargar un programado a cuenta, como ya se hace en ventas.
+- [x] Extraído `SelectorPago` compartido (`src/components/pos/SelectorPago.tsx`):
+      métodos, atajos ₡/$, referencia, a cuenta (con `BuscadorCliente` embebido o con
+      `cuentaFija` cuando el cliente ya se conoce de antemano) y pago dividido —
+      acumula pagos hasta completar el total, un solo lugar para la lógica.
+- [x] `ModalCobro` (ventas) consume el componente compartido — sin cambio de UX,
+      confirmado por click-through (venta simple, dividida, y a cuenta con cliente
+      nuevo vía `BuscadorCliente` embebido).
+- [x] `ModalAbono` (cuentas) consume el componente compartido con **pago dividido**
+      real: el backend (`registrarAbono`, `esquemaRegistrarAbono`) pasó de aceptar un
+      solo método a una lista `pagos[]`, insertando un `pago` + un `movimientoCuenta`
+      "abono" por cada medio usado. El tiquete de abono (`ticketAbono`) ahora lista
+      todos los medios usados en una sola emisión (`/api/tickets/abono` recibe
+      `pagoIds[]`, ya no un solo `pagoId`).
+- [x] `ModalGestionProgramado` consume el componente compartido con **pago dividido**
+      y **a cuenta con `cuentaFija`** (el cliente del pedido, sin buscador — ya se sabe
+      de quién es). Backend (`despacharDeProgramado`, `esquemaDespacharProgramado`)
+      pasó de un solo `pago` a `pagos[]`, reusando `esquemaPago` (el mismo de ventas) y
+      la misma validación "lo pagado debe sumar exacto el total" que ya tenía
+      `crearVenta`.
+- [x] Programados ya emite comprobante al despachar (Fase 6) — con el cambio a
+      `pagos[]`, `estadoPago` se calcula igual que en ventas (`pagada`/`a_cuenta`/
+      `parcial`), así que `/api/tickets/venta` elige solo el tiquete correcto
+      (venta o cargo a cuenta) sin tocarla.
+- [x] Aviso de **límite de crédito** en programados: `despacharDeProgramado` ahora
+      calcula `saldoCliente.pasaLimite` igual que `crearVenta`, y
+      `ModalGestionProgramado` lo muestra junto al tiquete. No se pudo disparar en la
+      prueba porque no hay UI todavía para poner un límite de crédito al cliente (el
+      cálculo en sí está verificado por código, espejo exacto del de ventas).
+
+Probado con Playwright contra la imagen Docker: venta con split (efectivo + SINPE),
+venta a cuenta con cliente nuevo, despacho de programado con split (efectivo parcial +
+resto a cuenta — el saldo de la cuenta quedó exacto), abono dividido (SINPE + efectivo,
+tiquete con ambos medios, saldo recalculado exacto). Cero errores de JS.
 
 ## Cuidado al refactorizar
 - No romper el `idempotencyKey` (protección de doble toque) que ya traen `ModalCobro` y
